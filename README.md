@@ -68,6 +68,8 @@ src/
     movies/$movieId_.edit  редактирование (только добавивший фильм)
     movies/new       добавление фильма (только для авторизованных)
     my.tsx           «Мои списки»: к просмотру / просмотрено
+    profile.tsx      профиль: данные и статистика пользователя
+    settings.tsx     настройки: смена имени и пароля
     sign-in, sign-up вход / регистрация
     uploads.posters.$file  GET-раздача загруженных постеров (server handler)
   server/            server functions и серверная логика
@@ -77,6 +79,7 @@ src/
     movies.ts        списки, карточки, поиск, создание/редактирование, оценки, мои списки
     comments.ts      комментарии к фильмам
     watch.ts         статусы «к просмотру» / «просмотрено»
+    profile.ts       профиль, смена имени и пароля
     uploads.ts       загрузка постеров (FormData → uploads/posters/)
   components/        UI-кит (ui/) и доменные компоненты (movies/)
   lib/db.ts          singleton PrismaClient
