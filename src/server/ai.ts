@@ -97,6 +97,11 @@ export const aiLookupMovie = createServerFn({ method: 'POST' })
             const result = await chat({
                 adapter: openaiText(
                     (process.env.OPENAI_MODEL || 'gpt-5.2') as Parameters<typeof openaiText>[0],
+                    // OPENAI_BASE_URL позволяет ходить через OpenAI-совместимый
+                    // прокси (нужно, если регион хостинга заблокирован OpenAI)
+                    process.env.OPENAI_BASE_URL
+                        ? { baseURL: process.env.OPENAI_BASE_URL }
+                        : undefined,
                 ),
                 systemPrompts: [ SYSTEM_PROMPT ],
                 messages: [ { role: 'user', content: `Название фильма: ${data.title}` } ],
@@ -117,6 +122,21 @@ export const aiLookupMovie = createServerFn({ method: 'POST' })
             return { ok: true as const, movie: { ...result, posterUrl } };
         } catch (error) {
             console.error('aiLookupMovie failed:', error);
+            const message = error instanceof Error ? error.message : String(error);
+
+            if (/unsupported_country|country.+not supported|403/i.test(message)) {
+                return {
+                    ok: false as const,
+                    error: 'OpenAI блокирует запросы из региона сервера — нужен прокси (OPENAI_BASE_URL)',
+                };
+            }
+            if (/401|invalid_api_key|incorrect api key/i.test(message)) {
+                return { ok: false as const, error: 'Неверный OPENAI_API_KEY на сервере' };
+            }
+            if (/429|quota|rate limit/i.test(message)) {
+                return { ok: false as const, error: 'Превышен лимит OpenAI — попробуйте позже' };
+            }
+
             return { ok: false as const, error: 'Сервис ИИ временно недоступен, попробуйте позже' };
         }
     });
