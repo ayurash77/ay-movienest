@@ -156,6 +156,22 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                 </div>
             </div>
 
+            {defaults?.posterUrl?.startsWith('http') ? (
+                <div className="flex items-center gap-3 rounded-md border border-border bg-muted/30 p-2">
+                    <img
+                        src={defaults.posterUrl}
+                        alt="Превью постера"
+                        className="h-24 rounded object-cover"
+                        onError={(e) => {
+                            e.currentTarget.closest('div')!.style.display = 'none';
+                        }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Найденный постер — если не подходит, очистите ссылку или загрузите свой файл
+                    </p>
+                </div>
+            ) : null}
+
             <Button type="submit" disabled={isSubmitting} className="self-end">
                 {isSubmitting ? 'Сохранение…' : submitLabel}
             </Button>

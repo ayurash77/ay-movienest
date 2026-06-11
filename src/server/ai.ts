@@ -6,6 +6,7 @@ import { getAuthUser } from './session';
 const lookupResultSchema = z.object({
     found: z.boolean(),
     title: z.string().nullish(),
+    originalTitle: z.string().nullish(),
     year: z.number().int().nullish(),
     country: z.string().nullish(),
     description: z.string().nullish(),
@@ -22,6 +23,7 @@ const SYSTEM_PROMPT = [
     'Пользователь присылает название фильма. Верни достоверные данные об этом фильме.',
     'Правила:',
     '- title: официальное русское название (если есть прокатное), иначе оригинальное.',
+    '- originalTitle: оригинальное название фильма (на языке производства).',
     '- year: год премьеры.',
     '- country: основная страна производства на русском (если несколько — перечисли через запятую, максимум три).',
     '- description: 3–5 предложений на русском, без спойлеров и оценок, нейтральный энциклопедический тон.',
@@ -32,6 +34,48 @@ const SYSTEM_PROMPT = [
     'Если фильм неизвестен, данных недостаточно или название слишком неоднозначно — верни found: false и не выдумывай данные.',
     'Если по названию подходит несколько фильмов, выбери самый известный.',
 ].join('\n');
+
+// Ищем постер в инфобоксе статьи Википедии (pilicense=any включает
+// несвободные изображения — постеры почти всегда такие)
+async function wikiPoster(lang: string, search: string): Promise<string | null> {
+    const url =
+        `https://${lang}.wikipedia.org/w/api.php?action=query&generator=search` +
+        `&gsrsearch=${encodeURIComponent(search)}&gsrlimit=1` +
+        `&prop=pageimages&piprop=thumbnail&pithumbsize=600&pilicense=any&format=json`;
+
+    try {
+        const res = await fetch(url, {
+            signal: AbortSignal.timeout(5000),
+            headers: { 'user-agent': 'MovieNest/1.0 (movie library; poster lookup)' },
+        });
+        if (!res.ok) return null;
+        const json = (await res.json()) as {
+            query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+        };
+        for (const page of Object.values(json.query?.pages ?? {})) {
+            if (page.thumbnail?.source) return page.thumbnail.source;
+        }
+    } catch {
+        // сеть/таймаут — просто остаёмся без постера
+    }
+    return null;
+}
+
+async function findPosterUrl(movie: AiMovieLookup): Promise<string | null> {
+    const attempts: Array<[ string, string ]> = [];
+    if (movie.title) {
+        attempts.push([ 'ru', `${movie.title} (фильм)` ], [ 'ru', `${movie.title} фильм ${movie.year ?? ''}` ]);
+    }
+    if (movie.originalTitle) {
+        attempts.push([ 'en', `${movie.originalTitle} (film)` ], [ 'en', `${movie.originalTitle} film ${movie.year ?? ''}` ]);
+    }
+
+    for (const [ lang, search ] of attempts) {
+        const poster = await wikiPoster(lang, search.trim());
+        if (poster) return poster;
+    }
+    return null;
+}
 
 export const aiLookupMovie = createServerFn({ method: 'POST' })
     .validator(z.object({ title: z.string().trim().min(2).max(200) }))
@@ -68,7 +112,9 @@ export const aiLookupMovie = createServerFn({ method: 'POST' })
                 };
             }
 
-            return { ok: true as const, movie: result };
+            const posterUrl = await findPosterUrl(result);
+
+            return { ok: true as const, movie: { ...result, posterUrl } };
         } catch (error) {
             console.error('aiLookupMovie failed:', error);
             return { ok: false as const, error: 'Сервис ИИ временно недоступен, попробуйте позже' };

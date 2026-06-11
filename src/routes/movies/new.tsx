@@ -47,6 +47,7 @@ function NewMoviePage() {
                 genres: movie.genres?.join(', ') ?? '',
                 starring: movie.starring?.join(', ') ?? '',
                 durationMin: movie.durationMin ?? '',
+                posterUrl: movie.posterUrl ?? '',
             });
             toast.success('Форма заполнена — проверьте данные перед сохранением');
         } catch {
