@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: movienest-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-movienest}
+      POSTGRES_USER: ${POSTGRES_USER:-movienest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-movienest}
+    volumes:
+      - movienest_pg_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-movienest} -d ${POSTGRES_DB:-movienest}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  movienest_pg_data:
