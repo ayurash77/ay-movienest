@@ -20,6 +20,9 @@ export type HomeMovies = {
     latest: MovieCardData[];
 };
 
+export const movieSortOptions = [ 'new', 'rating', 'year', 'title' ] as const;
+export type MovieSort = (typeof movieSortOptions)[number];
+
 async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> {
     if (ids.length === 0) return new Map();
 
@@ -101,6 +104,49 @@ export const getHomeMovies = createServerFn({ method: 'GET' }).handler(
     },
 );
 
+const searchMoviesSchema = z.object({
+    q: z.string().trim().max(200).optional(),
+    sort: z.enum(movieSortOptions).optional(),
+});
+
+export const searchMovies = createServerFn({ method: 'GET' })
+    .validator(searchMoviesSchema)
+    .handler(async ({ data }): Promise<MovieCardData[]> => {
+        const q = data.q;
+        const movies = await db.movie.findMany({
+            where: q
+                ? {
+                    OR: [
+                        { title: { contains: q, mode: 'insensitive' } },
+                        { director: { contains: q, mode: 'insensitive' } },
+                        { country: { contains: q, mode: 'insensitive' } },
+                        { genres: { has: q.toLowerCase() } },
+                    ],
+                }
+                : {},
+            orderBy: { createdAt: 'desc' },
+            take: 200,
+            select: { id: true },
+        });
+
+        const cards = await toMovieCards(movies.map((m) => m.id));
+        // toMovieCards loses findMany order; movies array keeps createdAt desc
+        const list = movies
+            .map((m) => cards.get(m.id))
+            .filter((c): c is MovieCardData => Boolean(c));
+
+        const sort: MovieSort = data.sort ?? 'new';
+        if (sort === 'rating') {
+            list.sort((a, b) => b.avgRating - a.avgRating || b.ratingCount - a.ratingCount);
+        } else if (sort === 'year') {
+            list.sort((a, b) => b.year - a.year);
+        } else if (sort === 'title') {
+            list.sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+        }
+
+        return list;
+    });
+
 export type MovieDetails = {
     id: string;
     title: string;
@@ -165,7 +211,14 @@ const createMovieSchema = z.object({
     year: z.coerce.number().int().min(1888).max(2100),
     country: z.string().trim().min(1).max(100),
     description: z.string().trim().min(1).max(5000),
-    posterUrl: z.union([ z.literal(''), z.string().trim().url() ]).optional(),
+    // Either an external https URL or a local /uploads/... path from uploadPoster
+    posterUrl: z
+        .union([
+            z.literal(''),
+            z.string().trim().url(),
+            z.string().trim().regex(/^\/uploads\/posters\/[\w.-]+$/),
+        ])
+        .optional(),
     director: z.string().trim().max(200).optional(),
     genres: z.string().trim().max(300).optional(),
     durationMin: z.union([ z.literal(''), z.coerce.number().int().min(1).max(1000) ]).optional(),

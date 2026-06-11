@@ -17,10 +17,20 @@ export function Header({ user }: { user: SessionUser | null }) {
     return (
         <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
             <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
-                <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
-                    <Clapperboard className="size-6 text-primary"/>
-                    Movie<span className="text-primary">Nest</span>
-                </Link>
+                <div className="flex items-center gap-5">
+                    <Link to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                        <Clapperboard className="size-6 text-primary"/>
+                        Movie<span className="text-primary">Nest</span>
+                    </Link>
+                    <Link
+                        to="/movies"
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        activeProps={{ className: 'text-foreground font-medium' }}
+                        activeOptions={{ exact: true }}
+                    >
+                        Все фильмы
+                    </Link>
+                </div>
 
                 <div className="flex items-center gap-2">
                     {user ? (

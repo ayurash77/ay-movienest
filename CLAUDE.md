@@ -28,7 +28,8 @@ Single full-stack **TanStack Start** app — no separate API server. All DB acce
 - `src/server/auth.ts` — signUp / signIn / signOut / getSessionUser server fns
 - `src/server/session.ts` — **server-only**: session CRUD + httpOnly cookie helpers
 - `src/server/password.ts` — scrypt hashing (node:crypto, no deps)
-- `src/server/movies.ts` — home lists, movie details, createMovie, rateMovie
+- `src/server/movies.ts` — home lists, movie details, searchMovies, createMovie, rateMovie
+- `src/server/uploads.ts` — poster file upload (FormData server fn → `uploads/posters/`, gitignored); files are served by the GET handler in `src/routes/uploads.posters.$file.tsx` (`server.handlers` route option)
 - `src/lib/db.ts` — singleton PrismaClient
 - `src/routes/` — file-based routes; `__root.tsx` `beforeLoad` puts the session user into router context (`context.user`), used by guards (`movies/new`) and UI
 - `prisma/seed.ts` — demo users/movies/ratings; generates gradient SVG posters into `public/posters/`

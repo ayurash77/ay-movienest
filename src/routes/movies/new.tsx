@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { createMovie } from '@/server/movies';
+import { uploadPoster } from '@/server/uploads';
 
 export const Route = createFileRoute('/movies/new')({
     beforeLoad: ({ context }) => {
@@ -28,13 +29,26 @@ function NewMoviePage() {
 
         setIsSubmitting(true);
         try {
+            let posterUrl = String(form.get('posterUrl') ?? '');
+            const posterFile = form.get('posterFile');
+            if (posterFile instanceof File && posterFile.size > 0) {
+                const fd = new FormData();
+                fd.append('file', posterFile);
+                const uploaded = await uploadPoster({ data: fd });
+                if (!uploaded.ok) {
+                    toast.error(uploaded.error);
+                    return;
+                }
+                posterUrl = uploaded.url;
+            }
+
             const result = await createMovie({
                 data: {
                     title: String(form.get('title') ?? ''),
                     year: Number(form.get('year') ?? 0),
                     country: String(form.get('country') ?? ''),
                     description: String(form.get('description') ?? ''),
-                    posterUrl: String(form.get('posterUrl') ?? ''),
+                    posterUrl,
                     director: String(form.get('director') ?? ''),
                     genres: String(form.get('genres') ?? ''),
                     durationMin: form.get('durationMin')
@@ -108,9 +122,21 @@ function NewMoviePage() {
                         <Input id="genres" name="genres" placeholder="драма, триллер" maxLength={300}/>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="posterUrl">Ссылка на постер</Label>
-                        <Input id="posterUrl" name="posterUrl" type="url" placeholder="https://..."/>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="posterFile">Постер (JPEG/PNG/WebP, до 5 МБ)</Label>
+                            <Input
+                                id="posterFile"
+                                name="posterFile"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="file:mr-2 file:rounded file:border-0 file:bg-secondary file:px-2 file:py-0.5 file:text-xs file:text-secondary-foreground"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="posterUrl">…или ссылка на постер</Label>
+                            <Input id="posterUrl" name="posterUrl" type="url" placeholder="https://..."/>
+                        </div>
                     </div>
 
                     <Button type="submit" disabled={isSubmitting} className="self-end">

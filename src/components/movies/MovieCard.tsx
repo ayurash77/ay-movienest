@@ -3,14 +3,17 @@ import { Link } from '@tanstack/react-router';
 import type { MovieCardData } from '@/server/movies';
 import { RatingStars } from './RatingStars';
 import { MoviePoster } from './MoviePoster';
-import { formatRating } from '@/lib/utils';
+import { cn, formatRating } from '@/lib/utils';
 
-export function MovieCard({ movie }: { movie: MovieCardData }) {
+export function MovieCard({ movie, className }: { movie: MovieCardData; className?: string }) {
     return (
         <Link
             to="/movies/$movieId"
             params={{ movieId: movie.id }}
-            className="group flex w-44 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10"
+            className={cn(
+                'group flex w-44 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10',
+                className,
+            )}
         >
             <MoviePoster posterUrl={movie.posterUrl} title={movie.title}/>
             <div className="flex flex-col gap-1.5 p-3">
