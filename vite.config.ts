@@ -35,7 +35,10 @@ export default defineConfig(({ mode }) => {
         preview: {
             host: '0.0.0.0',
             strictPort: true,
-            allowedHosts: extraHosts.length > 0 ? extraHosts : undefined,
+            // Behind the hosting proxy requests arrive with the public/technical
+            // domain in Host; without an explicit list we accept any host —
+            // host-checking only matters for local dev servers (DNS rebinding).
+            allowedHosts: extraHosts.length > 0 ? extraHosts : true,
         },
     };
 });

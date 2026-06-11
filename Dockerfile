@@ -2,9 +2,9 @@ FROM node:24-slim
 
 WORKDIR /app
 
-# openssl is required by Prisma engines
+# openssl is required by Prisma engines; curl — by the platform healthcheck
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends openssl \
+    && apt-get install -y --no-install-recommends openssl curl \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable
 
