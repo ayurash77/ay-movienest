@@ -19,6 +19,12 @@ pnpm db:studio    # Prisma Studio
 
 Env lives in `.env` (copy from `.env.example`). Postgres uses host port **5434** because 5432/5433 are taken by other local projects.
 
+Schema changes go through migrations now (`prisma/migrations/`, baseline `0_init`): use `pnpm db:migrate:dev`, not bare `db:push`, so production (`prisma migrate deploy` in the Docker CMD) stays in sync.
+
+## Deployment
+
+Deployed to Timeweb Cloud App Platform from the GitHub repo via the root `Dockerfile` (port 3000 via `EXPOSE`). Runtime env vars set in the panel: `DATABASE_URL` (managed PostgreSQL), `SESSION_SECRET`, `WEB_ALLOWED_HOSTS` (production domain; consumed by `preview.allowedHosts` in vite.config.ts). Container FS is ephemeral — user-uploaded posters in `uploads/` do not survive redeploys (S3 is the intended fix).
+
 ## Architecture
 
 MovieNest is a movie-library web app: weekly/monthly top-10, latest additions, movie pages, 1–5 star ratings. Registered users (email + password) can add movies and rate them.

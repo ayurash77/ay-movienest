@@ -2,6 +2,7 @@
   "name": "ay-movienest",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "dev": "vite dev --port 3002",
     "build": "vite build",
