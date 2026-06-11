@@ -22,7 +22,8 @@ export function MovieSection({ title, icon, movies, emptyText }: MovieSectionPro
                     {emptyText ?? 'Пока нет фильмов'}
                 </p>
             ) : (
-                <div className="flex gap-4 overflow-x-auto pb-2">
+                // pt-2 даёт карточкам место подняться при hover, не обрезаясь о overflow
+                <div className="flex gap-4 overflow-x-auto pb-2 pt-2">
                     {movies.map((movie) => (
                         <MovieCard key={movie.id} movie={movie}/>
                     ))}

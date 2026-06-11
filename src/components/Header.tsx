@@ -30,6 +30,15 @@ export function Header({ user }: { user: SessionUser | null }) {
                     >
                         Все фильмы
                     </Link>
+                    {user ? (
+                        <Link
+                            to="/my"
+                            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                            activeProps={{ className: 'text-foreground font-medium' }}
+                        >
+                            Мои списки
+                        </Link>
+                    ) : null}
                 </div>
 
                 <div className="flex items-center gap-2">

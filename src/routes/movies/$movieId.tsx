@@ -1,18 +1,24 @@
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router';
-import { ArrowLeft, Clock, Globe, User } from 'lucide-react';
+import { ArrowLeft, Clock, Globe, Pencil, User, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { CommentsSection } from '@/components/movies/CommentsSection';
 import { MoviePoster } from '@/components/movies/MoviePoster';
 import { RatingStars } from '@/components/movies/RatingStars';
+import { WatchButtons } from '@/components/movies/WatchButtons';
 import { Button } from '@/components/ui/button';
 import { formatRating } from '@/lib/utils';
+import { getComments } from '@/server/comments';
 import { getMovie, rateMovie } from '@/server/movies';
 
 export const Route = createFileRoute('/movies/$movieId')({
     loader: async ({ params }) => {
-        const movie = await getMovie({ data: { id: params.movieId } });
+        const [ movie, comments ] = await Promise.all([
+            getMovie({ data: { id: params.movieId } }),
+            getComments({ data: { movieId: params.movieId } }),
+        ]);
         if (!movie) throw notFound();
-        return movie;
+        return { movie, comments };
     },
     component: MoviePage,
     notFoundComponent: () => (
@@ -26,7 +32,7 @@ export const Route = createFileRoute('/movies/$movieId')({
 });
 
 function MoviePage() {
-    const movie = Route.useLoaderData();
+    const { movie, comments } = Route.useLoaderData();
     const { user } = Route.useRouteContext();
     const router = useRouter();
 
@@ -42,12 +48,22 @@ function MoviePage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <Button asChild variant="ghost" size="sm" className="self-start">
-                <Link to="/">
-                    <ArrowLeft/>
-                    Назад
-                </Link>
-            </Button>
+            <div className="flex items-center justify-between">
+                <Button asChild variant="ghost" size="sm">
+                    <Link to="/">
+                        <ArrowLeft/>
+                        Назад
+                    </Link>
+                </Button>
+                {movie.canEdit ? (
+                    <Button asChild variant="outline" size="sm">
+                        <Link to="/movies/$movieId/edit" params={{ movieId: movie.id }}>
+                            <Pencil/>
+                            Редактировать
+                        </Link>
+                    </Button>
+                ) : null}
+            </div>
 
             <div className="flex flex-col gap-8 md:flex-row">
                 <div className="w-full max-w-72 shrink-0 self-start overflow-hidden rounded-xl border border-border">
@@ -70,6 +86,10 @@ function MoviePage() {
                                 : 'Оценок пока нет'}
                         </span>
                     </div>
+
+                    {user ? (
+                        <WatchButtons movieId={movie.id} current={movie.myWatchStatus}/>
+                    ) : null}
 
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                         {movie.director ? (
@@ -101,6 +121,16 @@ function MoviePage() {
                                 </span>
                             ))}
                         </div>
+                    ) : null}
+
+                    {movie.starring.length > 0 ? (
+                        <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                            <Users className="mt-0.5 size-4 shrink-0"/>
+                            <span>
+                                <span className="font-medium text-foreground">В главных ролях: </span>
+                                {movie.starring.join(', ')}
+                            </span>
+                        </p>
                     ) : null}
 
                     <p className="whitespace-pre-line leading-relaxed text-foreground/90">
@@ -136,6 +166,12 @@ function MoviePage() {
                             Добавил(а): {movie.addedBy}
                         </p>
                     ) : null}
+
+                    <CommentsSection
+                        movieId={movie.id}
+                        comments={comments}
+                        isAuthed={Boolean(user)}
+                    />
                 </div>
             </div>
         </div>

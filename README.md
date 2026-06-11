@@ -64,15 +64,19 @@ src/
   routes/            file-based роуты
     index.tsx        главная: топ недели / топ месяца / новинки
     movies/index     каталог «Все фильмы»: поиск + сортировка
-    movies/$movieId  страница фильма + выставление оценки
+    movies/$movieId  страница фильма: оценки, списки, комментарии
+    movies/$movieId_.edit  редактирование (только добавивший фильм)
     movies/new       добавление фильма (только для авторизованных)
+    my.tsx           «Мои списки»: к просмотру / просмотрено
     sign-in, sign-up вход / регистрация
     uploads.posters.$file  GET-раздача загруженных постеров (server handler)
   server/            server functions и серверная логика
     auth.ts          signUp / signIn / signOut / getSessionUser
     session.ts       сессии + cookie (server-only)
     password.ts      scrypt-хэширование
-    movies.ts        списки, карточки, поиск, создание, оценки
+    movies.ts        списки, карточки, поиск, создание/редактирование, оценки, мои списки
+    comments.ts      комментарии к фильмам
+    watch.ts         статусы «к просмотру» / «просмотрено»
     uploads.ts       загрузка постеров (FormData → uploads/posters/)
   components/        UI-кит (ui/) и доменные компоненты (movies/)
   lib/db.ts          singleton PrismaClient

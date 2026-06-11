@@ -12,6 +12,7 @@ export type MovieCardData = {
     posterUrl: string | null;
     avgRating: number;
     ratingCount: number;
+    commentCount: number;
 };
 
 export type HomeMovies = {
@@ -26,7 +27,7 @@ export type MovieSort = (typeof movieSortOptions)[number];
 async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> {
     if (ids.length === 0) return new Map();
 
-    const [ movies, aggregates ] = await Promise.all([
+    const [ movies, aggregates, commentCounts ] = await Promise.all([
         db.movie.findMany({ where: { id: { in: ids } } }),
         db.rating.groupBy({
             by: [ 'movieId' ],
@@ -34,9 +35,15 @@ async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> 
             _avg: { value: true },
             _count: { _all: true },
         }),
+        db.comment.groupBy({
+            by: [ 'movieId' ],
+            where: { movieId: { in: ids } },
+            _count: { _all: true },
+        }),
     ]);
 
     const aggByMovie = new Map(aggregates.map((a) => [ a.movieId, a ]));
+    const commentsByMovie = new Map(commentCounts.map((c) => [ c.movieId, c._count._all ]));
 
     return new Map(
         movies.map((movie) => {
@@ -51,6 +58,7 @@ async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> 
                     posterUrl: movie.posterUrl,
                     avgRating: agg?._avg.value ?? 0,
                     ratingCount: agg?._count._all ?? 0,
+                    commentCount: commentsByMovie.get(movie.id) ?? 0,
                 },
             ];
         }),
@@ -156,12 +164,15 @@ export type MovieDetails = {
     posterUrl: string | null;
     director: string | null;
     genres: string[];
+    starring: string[];
     durationMin: number | null;
     createdAt: string;
     addedBy: string | null;
     avgRating: number;
     ratingCount: number;
     myRating: number | null;
+    myWatchStatus: 'WATCHLIST' | 'WATCHED' | null;
+    canEdit: boolean;
 };
 
 export const getMovie = createServerFn({ method: 'GET' })
@@ -175,7 +186,7 @@ export const getMovie = createServerFn({ method: 'GET' })
         });
         if (!movie) return null;
 
-        const [ agg, myRating ] = await Promise.all([
+        const [ agg, myRating, myWatch ] = await Promise.all([
             db.rating.aggregate({
                 where: { movieId: movie.id },
                 _avg: { value: true },
@@ -183,6 +194,11 @@ export const getMovie = createServerFn({ method: 'GET' })
             }),
             user
                 ? db.rating.findUnique({
+                    where: { movieId_userId: { movieId: movie.id, userId: user.id } },
+                })
+                : null,
+            user
+                ? db.watchEntry.findUnique({
                     where: { movieId_userId: { movieId: movie.id, userId: user.id } },
                 })
                 : null,
@@ -197,35 +213,69 @@ export const getMovie = createServerFn({ method: 'GET' })
             posterUrl: movie.posterUrl,
             director: movie.director,
             genres: movie.genres,
+            starring: movie.starring,
             durationMin: movie.durationMin,
             createdAt: movie.createdAt.toISOString(),
             addedBy: movie.createdBy?.name ?? null,
             avgRating: agg._avg.value ?? 0,
             ratingCount: agg._count._all,
             myRating: myRating?.value ?? null,
+            myWatchStatus: myWatch?.status ?? null,
+            canEdit: Boolean(user && movie.createdById === user.id),
         };
     });
 
-const createMovieSchema = z.object({
+const movieFieldsSchema = z.object({
     title: z.string().trim().min(1).max(200),
     year: z.coerce.number().int().min(1888).max(2100),
     country: z.string().trim().min(1).max(100),
     description: z.string().trim().min(1).max(5000),
-    // Either an external https URL or a local /uploads/... path from uploadPoster
+    // External https URL, an uploaded /uploads/posters/... path, or a seed /posters/... path
     posterUrl: z
         .union([
             z.literal(''),
             z.string().trim().url(),
-            z.string().trim().regex(/^\/uploads\/posters\/[\w.-]+$/),
+            z.string().trim().regex(/^\/(?:uploads\/)?posters\/[\w.-]+$/),
         ])
         .optional(),
     director: z.string().trim().max(200).optional(),
     genres: z.string().trim().max(300).optional(),
+    starring: z.string().trim().max(500).optional(),
     durationMin: z.union([ z.literal(''), z.coerce.number().int().min(1).max(1000) ]).optional(),
 });
 
+export type MovieFormFields = {
+    title: string;
+    year: number;
+    country: string;
+    description: string;
+    posterUrl?: string;
+    director?: string;
+    genres?: string;
+    starring?: string;
+    durationMin?: number | '';
+};
+
+function splitList(value: string | undefined) {
+    return value ? value.split(',').map((item) => item.trim()).filter(Boolean) : [];
+}
+
+function toMovieData(data: z.output<typeof movieFieldsSchema>) {
+    return {
+        title: data.title,
+        year: data.year,
+        country: data.country,
+        description: data.description,
+        posterUrl: data.posterUrl || null,
+        director: data.director || null,
+        genres: splitList(data.genres),
+        starring: splitList(data.starring),
+        durationMin: data.durationMin === '' ? null : data.durationMin ?? null,
+    };
+}
+
 export const createMovie = createServerFn({ method: 'POST' })
-    .validator(createMovieSchema)
+    .validator(movieFieldsSchema)
     .handler(async ({ data }) => {
         const user = await getAuthUser();
         if (!user) {
@@ -233,23 +283,58 @@ export const createMovie = createServerFn({ method: 'POST' })
         }
 
         const movie = await db.movie.create({
-            data: {
-                title: data.title,
-                year: data.year,
-                country: data.country,
-                description: data.description,
-                posterUrl: data.posterUrl || null,
-                director: data.director || null,
-                genres: data.genres
-                    ? data.genres.split(',').map((g) => g.trim()).filter(Boolean)
-                    : [],
-                durationMin: data.durationMin === '' ? null : data.durationMin ?? null,
-                createdById: user.id,
-            },
+            data: { ...toMovieData(data), createdById: user.id },
         });
 
         return { ok: true as const, movieId: movie.id };
     });
+
+export const updateMovie = createServerFn({ method: 'POST' })
+    .validator(movieFieldsSchema.extend({ movieId: z.string().min(1) }))
+    .handler(async ({ data }) => {
+        const user = await getAuthUser();
+        if (!user) {
+            return { ok: false as const, error: 'Требуется авторизация' };
+        }
+
+        const movie = await db.movie.findUnique({
+            where: { id: data.movieId },
+            select: { createdById: true },
+        });
+        if (!movie) {
+            return { ok: false as const, error: 'Фильм не найден' };
+        }
+        if (movie.createdById !== user.id) {
+            return { ok: false as const, error: 'Редактировать может только добавивший фильм' };
+        }
+
+        const { movieId, ...fields } = data;
+        await db.movie.update({ where: { id: movieId }, data: toMovieData(fields) });
+
+        return { ok: true as const, movieId };
+    });
+
+export const getMyLists = createServerFn({ method: 'GET' }).handler(
+    async (): Promise<{ watchlist: MovieCardData[]; watched: MovieCardData[] } | null> => {
+        const user = await getAuthUser();
+        if (!user) return null;
+
+        const entries = await db.watchEntry.findMany({
+            where: { userId: user.id },
+            orderBy: { updatedAt: 'desc' },
+            select: { movieId: true, status: true },
+        });
+
+        const cards = await toMovieCards(entries.map((e) => e.movieId));
+        const pick = (status: 'WATCHLIST' | 'WATCHED') =>
+            entries
+                .filter((e) => e.status === status)
+                .map((e) => cards.get(e.movieId))
+                .filter((c): c is MovieCardData => Boolean(c));
+
+        return { watchlist: pick('WATCHLIST'), watched: pick('WATCHED') };
+    },
+);
 
 export const rateMovie = createServerFn({ method: 'POST' })
     .validator(z.object({ movieId: z.string().min(1), value: z.number().int().min(1).max(5) }))

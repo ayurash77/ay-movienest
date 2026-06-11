@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String       @id @default(cuid())
+  email        String       @unique
   name         String
   passwordHash String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime     @default(now())
   sessions     Session[]
   ratings      Rating[]
   movies       Movie[]
+  comments     Comment[]
+  watchEntries WatchEntry[]
 }
 
 model Session {
@@ -38,12 +40,46 @@ model Movie {
   director    String?
   genres      String[]
   durationMin Int?
+  starring    String[]
   createdById String?
   createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   ratings     Rating[]
+  comments    Comment[]
+  watchEntries WatchEntry[]
 
   @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  movieId   String
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([movieId, createdAt])
+}
+
+enum WatchStatus {
+  WATCHLIST
+  WATCHED
+}
+
+model WatchEntry {
+  id        String      @id @default(cuid())
+  movieId   String
+  movie     Movie       @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    WatchStatus
+  updatedAt DateTime    @updatedAt
+  createdAt DateTime    @default(now())
+
+  @@unique([movieId, userId])
+  @@index([userId, status])
 }
 
 model Rating {
