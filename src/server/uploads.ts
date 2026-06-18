@@ -1,9 +1,7 @@
-import { randomBytes } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { createServerFn } from '@tanstack/react-start';
 
 import { getAuthUser } from './session';
+import { storeUpload } from './storage';
 
 const MAX_POSTER_BYTES = 5 * 1024 * 1024;
 
@@ -39,10 +37,15 @@ export const uploadPoster = createServerFn({ method: 'POST' })
             return { ok: false as const, error: 'Поддерживаются только JPEG, PNG и WebP' };
         }
 
-        const name = `${randomBytes(12).toString('hex')}.${ext}`;
-        const dir = join(process.cwd(), 'uploads', 'posters');
-        await mkdir(dir, { recursive: true });
-        await writeFile(join(dir, name), Buffer.from(await file.arrayBuffer()));
-
-        return { ok: true as const, url: `/uploads/posters/${name}` };
+        try {
+            const { url } = await storeUpload(
+                'posters',
+                ext,
+                Buffer.from(await file.arrayBuffer()),
+                file.type,
+            );
+            return { ok: true as const, url };
+        } catch {
+            return { ok: false as const, error: 'Не удалось сохранить файл' };
+        }
     });

@@ -23,7 +23,7 @@ Schema changes go through migrations now (`prisma/migrations/`, baseline `0_init
 
 ## Deployment
 
-Deployed to Timeweb Cloud App Platform from the GitHub repo via the root `Dockerfile` (port 3000 via `EXPOSE`). Runtime env vars set in the panel: `DATABASE_URL` (managed PostgreSQL), `SESSION_SECRET`, `WEB_ALLOWED_HOSTS` (production domain; consumed by `preview.allowedHosts` in vite.config.ts). Container FS is ephemeral — user-uploaded posters in `uploads/` do not survive redeploys (S3 is the intended fix).
+Deployed to Timeweb Cloud App Platform from the GitHub repo via the root `Dockerfile` (port 3000 via `EXPOSE`). Runtime env vars set in the panel: `DATABASE_URL` (managed PostgreSQL), `SESSION_SECRET`, `WEB_ALLOWED_HOSTS` (production domain; consumed by `preview.allowedHosts` in vite.config.ts), and `S3_*` vars for Timeweb object storage. Container FS is ephemeral, so production poster uploads should use S3.
 
 ## Architecture
 
@@ -35,7 +35,8 @@ Single full-stack **TanStack Start** app — no separate API server. All DB acce
 - `src/server/session.ts` — **server-only**: session CRUD + httpOnly cookie helpers
 - `src/server/password.ts` — scrypt hashing (node:crypto, no deps)
 - `src/server/movies.ts` — home lists, movie details, searchMovies, createMovie, rateMovie
-- `src/server/uploads.ts` — poster file upload (FormData server fn → `uploads/posters/`, gitignored); files are served by the GET handler in `src/routes/uploads.posters.$file.tsx` (`server.handlers` route option)
+- `src/server/uploads.ts` — poster file upload (FormData server fn); delegates persistence to `src/server/storage.ts`
+- `src/server/storage.ts` — storage abstraction with two backends, selected by env: **s3** (uploads to an S3-compatible bucket, returns the public object URL) when `S3_*` vars are set, else **local** (writes to `uploads/posters/`, served by `src/routes/uploads.posters.$file.tsx`)
 - `src/lib/db.ts` — singleton PrismaClient
 - `src/routes/` — file-based routes; `__root.tsx` `beforeLoad` puts the session user into router context (`context.user`), used by guards (`movies/new`) and UI
 - `prisma/seed.ts` — demo users/movies/ratings; generates gradient SVG posters into `public/posters/`
