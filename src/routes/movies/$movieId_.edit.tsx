@@ -57,10 +57,13 @@ function EditMoviePage() {
                         country: movie.country,
                         description: movie.description,
                         posterUrl: movie.posterUrl ?? '',
+                        trailerUrl: movie.trailerUrl ?? '',
                         director: movie.director ?? '',
                         genres: movie.genres.join(', '),
                         starring: movie.starring.join(', '),
                         durationMin: movie.durationMin ?? '',
+                        seasonsCount: movie.seasonsCount ?? '',
+                        episodesPerSeason: movie.episodesPerSeason.join(', '),
                     }}
                     onSubmit={async (fields) => {
                         const result = await updateMovie({ data: { ...fields, movieId: movie.id } });

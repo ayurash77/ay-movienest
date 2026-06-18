@@ -22,6 +22,7 @@ const KIND_LABELS: Record<NonNullable<MovieFormFields['kind']>, string> = {
 
 export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
     const [ isSubmitting, setIsSubmitting ] = useState(false);
+    const [ kind, setKind ] = useState<NonNullable<MovieFormFields['kind']>>(defaults?.kind ?? 'MOVIE');
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -49,12 +50,17 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                 country: String(form.get('country') ?? ''),
                 description: String(form.get('description') ?? ''),
                 posterUrl,
+                trailerUrl: String(form.get('trailerUrl') ?? ''),
                 director: String(form.get('director') ?? ''),
                 genres: String(form.get('genres') ?? ''),
                 starring: String(form.get('starring') ?? ''),
                 durationMin: form.get('durationMin')
                     ? Number(form.get('durationMin'))
                     : '',
+                seasonsCount: form.get('seasonsCount')
+                    ? Number(form.get('seasonsCount'))
+                    : '',
+                episodesPerSeason: String(form.get('episodesPerSeason') ?? ''),
             });
         } catch {
             toast.error('Проверьте правильность заполнения полей');
@@ -71,7 +77,8 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                     id="kind"
                     name="kind"
                     required
-                    defaultValue={defaults?.kind ?? 'MOVIE'}
+                    value={kind}
+                    onChange={(event) => setKind(event.currentTarget.value as NonNullable<MovieFormFields['kind']>)}
                     className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
                 >
                     {Object.entries(KIND_LABELS).map(([ value, label ]) => (
@@ -134,6 +141,32 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                 </div>
             </div>
 
+            {kind === 'SERIES' ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="seasonsCount">Сезонов</Label>
+                        <Input
+                            id="seasonsCount"
+                            name="seasonsCount"
+                            type="number"
+                            min={1}
+                            max={100}
+                            defaultValue={defaults?.seasonsCount ?? ''}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="episodesPerSeason">Серии по сезонам</Label>
+                        <Input
+                            id="episodesPerSeason"
+                            name="episodesPerSeason"
+                            placeholder="8, 10, 12"
+                            maxLength={500}
+                            defaultValue={defaults?.episodesPerSeason ?? ''}
+                        />
+                    </div>
+                </div>
+            ) : null}
+
             <div className="flex flex-col gap-2">
                 <Label htmlFor="starring">В главных ролях (через запятую)</Label>
                 <Input
@@ -176,6 +209,16 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                         defaultValue={defaults?.posterUrl ?? ''}
                     />
                 </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+                <Label htmlFor="trailerUrl">Ссылка на трейлер</Label>
+                <Input
+                    id="trailerUrl"
+                    name="trailerUrl"
+                    placeholder="https://..."
+                    defaultValue={defaults?.trailerUrl ?? ''}
+                />
             </div>
 
             {defaults?.posterUrl?.startsWith('http') ? (

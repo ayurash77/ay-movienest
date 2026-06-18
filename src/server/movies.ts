@@ -11,6 +11,8 @@ export type MovieCardData = {
     year: number;
     country: string;
     posterUrl: string | null;
+    seasonsCount: number | null;
+    episodesPerSeason: number[];
     avgRating: number;
     ratingCount: number;
     commentCount: number;
@@ -60,6 +62,8 @@ async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> 
                     year: movie.year,
                     country: movie.country,
                     posterUrl: movie.posterUrl,
+                    seasonsCount: movie.seasonsCount,
+                    episodesPerSeason: movie.episodesPerSeason,
                     avgRating: agg?._avg.value ?? 0,
                     ratingCount: agg?._count._all ?? 0,
                     commentCount: commentsByMovie.get(movie.id) ?? 0,
@@ -151,10 +155,13 @@ export type MovieDetails = {
     country: string;
     description: string;
     posterUrl: string | null;
+    trailerUrl: string | null;
     director: string | null;
     genres: string[];
     starring: string[];
     durationMin: number | null;
+    seasonsCount: number | null;
+    episodesPerSeason: number[];
     createdAt: string;
     addedBy: string | null;
     avgRating: number;
@@ -201,10 +208,13 @@ export const getMovie = createServerFn({ method: 'GET' })
             country: movie.country,
             description: movie.description,
             posterUrl: movie.posterUrl,
+            trailerUrl: movie.trailerUrl,
             director: movie.director,
             genres: movie.genres,
             starring: movie.starring,
             durationMin: movie.durationMin,
+            seasonsCount: movie.seasonsCount,
+            episodesPerSeason: movie.episodesPerSeason,
             createdAt: movie.createdAt.toISOString(),
             addedBy: movie.createdBy?.name ?? null,
             avgRating: agg._avg.value ?? 0,
@@ -229,10 +239,13 @@ const movieFieldsSchema = z.object({
             z.string().trim().regex(/^\/(?:uploads\/)?posters\/[\w.-]+$/),
         ])
         .optional(),
+    trailerUrl: z.union([ z.literal(''), z.string().trim().url() ]).optional(),
     director: z.string().trim().max(200).optional(),
     genres: z.string().trim().max(300).optional(),
     starring: z.string().trim().max(500).optional(),
     durationMin: z.union([ z.literal(''), z.coerce.number().int().min(1).max(1000) ]).optional(),
+    seasonsCount: z.union([ z.literal(''), z.coerce.number().int().min(1).max(100) ]).optional(),
+    episodesPerSeason: z.string().trim().max(500).optional(),
 });
 
 export type MovieFormFields = {
@@ -242,10 +255,13 @@ export type MovieFormFields = {
     country: string;
     description: string;
     posterUrl?: string;
+    trailerUrl?: string;
     director?: string;
     genres?: string;
     starring?: string;
     durationMin?: number | '';
+    seasonsCount?: number | '';
+    episodesPerSeason?: string;
 };
 
 function splitList(value: string | undefined) {
@@ -260,10 +276,17 @@ function toMovieData(data: z.output<typeof movieFieldsSchema>) {
         country: data.country,
         description: data.description,
         posterUrl: data.posterUrl || null,
+        trailerUrl: data.trailerUrl || null,
         director: data.director || null,
         genres: splitList(data.genres),
         starring: splitList(data.starring),
         durationMin: data.durationMin === '' ? null : data.durationMin ?? null,
+        seasonsCount: data.kind === 'SERIES' && data.seasonsCount !== ''
+            ? data.seasonsCount ?? null
+            : null,
+        episodesPerSeason: data.kind === 'SERIES'
+            ? splitList(data.episodesPerSeason).map(Number).filter((value) => Number.isInteger(value) && value > 0)
+            : [],
     };
 }
 

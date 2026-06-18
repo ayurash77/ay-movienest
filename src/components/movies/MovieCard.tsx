@@ -1,12 +1,39 @@
 import { Link } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
 import { MessageSquare } from 'lucide-react';
+import { IoFilm } from 'react-icons/io5';
+import { TbDeviceTvOldFilled } from 'react-icons/tb';
+import { FaImage } from 'react-icons/fa6';
 
-import type { MovieCardData } from '@/server/movies';
+import type { MovieCardData, MovieKind } from '@/server/movies';
 import { RatingStars } from './RatingStars';
 import { MoviePoster } from './MoviePoster';
 import { cn, formatRating } from '@/lib/utils';
 
+const KIND_ICONS: Record<MovieKind, ReactNode> = {
+    MOVIE: <IoFilm className="size-4"/>,
+    SERIES: <TbDeviceTvOldFilled className="size-4"/>,
+    CARTOON: <FaImage className="size-3.5"/>,
+};
+
+function seriesMeta(movie: MovieCardData) {
+    if (movie.kind !== 'SERIES') return null;
+    const episodesPerSeason = movie.episodesPerSeason ?? [];
+    if (!movie.seasonsCount && !episodesPerSeason.length) return null;
+
+    const seasons = movie.seasonsCount
+        ? `${movie.seasonsCount} сез.`
+        : null;
+    const episodes = episodesPerSeason.length
+        ? episodesPerSeason.map((count, index) => `${index + 1}: ${count}`).join(', ')
+        : null;
+
+    return [ seasons, episodes ? `${episodes} сер.` : null ].filter(Boolean).join(' · ');
+}
+
 export function MovieCard({ movie, className }: { movie: MovieCardData; className?: string }) {
+    const meta = seriesMeta(movie);
+
     return (
         <Link
             to="/movies/$movieId"
@@ -16,8 +43,13 @@ export function MovieCard({ movie, className }: { movie: MovieCardData; classNam
                 className,
             )}
         >
-            <MoviePoster posterUrl={movie.posterUrl} title={movie.title}/>
-            <div className="flex flex-col gap-1 p-2.5">
+            <div className="relative">
+                <MoviePoster posterUrl={movie.posterUrl} title={movie.title} className="aspect-[3/4]"/>
+                <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-md border border-border/70 bg-background/85 text-primary shadow-sm backdrop-blur">
+                    {KIND_ICONS[movie.kind]}
+                </span>
+            </div>
+            <div className="flex flex-col gap-1 p-2">
                 <div className="flex items-center gap-1.5">
                     <RatingStars value={movie.avgRating}/>
                     <span className="text-xs text-muted-foreground">
@@ -34,6 +66,11 @@ export function MovieCard({ movie, className }: { movie: MovieCardData; classNam
                 <p className="text-xs text-muted-foreground">
                     {movie.year} · {movie.country}
                 </p>
+                {meta ? (
+                    <p className="text-xs text-muted-foreground">
+                        {meta}
+                    </p>
+                ) : null}
             </div>
         </Link>
     );

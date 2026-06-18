@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router';
-import { ArrowLeft, Clock, Globe, Pencil, User, Users } from 'lucide-react';
+import { ArrowLeft, Clock, Clapperboard, ExternalLink, Globe, Pencil, PlayCircle, Tv, User, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { CommentsSection } from '@/components/movies/CommentsSection';
@@ -10,6 +10,37 @@ import { Button } from '@/components/ui/button';
 import { formatRating } from '@/lib/utils';
 import { getComments } from '@/server/comments';
 import { getMovie, rateMovie } from '@/server/movies';
+
+function trailerEmbedUrl(url: string | null) {
+    if (!url) return null;
+    try {
+        const parsed = new URL(url);
+        if (parsed.hostname.includes('youtube.com')) {
+            const id = parsed.searchParams.get('v');
+            return id ? `https://www.youtube.com/embed/${id}` : null;
+        }
+        if (parsed.hostname === 'youtu.be') {
+            const id = parsed.pathname.replace(/^\/+/, '');
+            return id ? `https://www.youtube.com/embed/${id}` : null;
+        }
+        if (parsed.hostname.includes('vimeo.com')) {
+            const id = parsed.pathname.split('/').filter(Boolean)[0];
+            return id ? `https://player.vimeo.com/video/${id}` : null;
+        }
+    } catch {
+        return null;
+    }
+    return null;
+}
+
+function seriesMeta(movie: { seasonsCount: number | null; episodesPerSeason: number[] }) {
+    const seasons = movie.seasonsCount ? `${movie.seasonsCount} сез.` : null;
+    const episodesPerSeason = movie.episodesPerSeason ?? [];
+    const episodes = episodesPerSeason.length
+        ? `${episodesPerSeason.map((count, index) => `${index + 1}: ${count}`).join(', ')} сер.`
+        : null;
+    return [ seasons, episodes ].filter(Boolean).join(' · ');
+}
 
 export const Route = createFileRoute('/movies/$movieId')({
     loader: async ({ params }) => {
@@ -35,6 +66,7 @@ function MoviePage() {
     const { movie, comments } = Route.useLoaderData();
     const { user } = Route.useRouteContext();
     const router = useRouter();
+    const trailerUrl = trailerEmbedUrl(movie.trailerUrl);
 
     const handleRate = async (value: number) => {
         const result = await rateMovie({ data: { movieId: movie.id, value } });
@@ -104,6 +136,12 @@ function MoviePage() {
                                 {movie.durationMin} мин
                             </span>
                         ) : null}
+                        {movie.kind === 'SERIES' && seriesMeta(movie) ? (
+                            <span className="inline-flex items-center gap-1.5">
+                                <Tv className="size-4"/>
+                                {seriesMeta(movie)}
+                            </span>
+                        ) : null}
                         <span className="inline-flex items-center gap-1.5">
                             <Globe className="size-4"/>
                             {movie.country}
@@ -136,6 +174,34 @@ function MoviePage() {
                     <p className="whitespace-pre-line leading-relaxed text-foreground/90">
                         {movie.description}
                     </p>
+
+                    {movie.trailerUrl ? (
+                        <section className="flex flex-col gap-3">
+                            <h2 className="flex items-center gap-2 text-lg font-semibold">
+                                <Clapperboard className="size-5 text-primary"/>
+                                Трейлер
+                            </h2>
+                            {trailerUrl ? (
+                                <div className="aspect-video overflow-hidden rounded-lg border border-border bg-background">
+                                    <iframe
+                                        src={trailerUrl}
+                                        title={`Трейлер: ${movie.title}`}
+                                        className="size-full"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                    />
+                                </div>
+                            ) : (
+                                <Button asChild variant="outline" className="self-start">
+                                    <a href={movie.trailerUrl} target="_blank" rel="noreferrer">
+                                        <PlayCircle/>
+                                        Открыть трейлер
+                                        <ExternalLink/>
+                                    </a>
+                                </Button>
+                            )}
+                        </section>
+                    ) : null}
 
                     <div className="mt-2 rounded-lg border border-border bg-card p-4">
                         {user ? (

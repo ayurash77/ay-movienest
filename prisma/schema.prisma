@@ -31,23 +31,26 @@ model Session {
 }
 
 model Movie {
-  id           String       @id @default(cuid())
-  kind         MovieKind    @default(MOVIE)
-  title        String
-  year         Int
-  country      String
-  description  String
-  posterUrl    String?
-  director     String?
-  genres       String[]
-  durationMin  Int?
-  starring     String[]
-  createdById  String?
-  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt    DateTime     @default(now())
-  ratings      Rating[]
-  comments     Comment[]
-  watchEntries WatchEntry[]
+  id                String       @id @default(cuid())
+  kind              MovieKind    @default(MOVIE)
+  title             String
+  year              Int
+  country           String
+  description       String
+  posterUrl         String?
+  trailerUrl        String?
+  director          String?
+  genres            String[]
+  durationMin       Int?
+  seasonsCount      Int?
+  episodesPerSeason Int[]
+  starring          String[]
+  createdById       String?
+  createdBy         User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime     @default(now())
+  ratings           Rating[]
+  comments          Comment[]
+  watchEntries      WatchEntry[]
 
   @@index([createdAt])
   @@index([kind, createdAt])
