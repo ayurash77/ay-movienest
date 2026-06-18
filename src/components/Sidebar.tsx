@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useRouter } from '@tanstack/react-router';
 import {
     Bookmark,
-    Clapperboard,
+    Check,
     Film,
     Home,
     LogOut,
+    Palette,
     Plus,
     Search,
     Settings,
@@ -35,12 +36,15 @@ const navLinkClass =
     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0';
 const navLinkActive = 'bg-accent text-foreground font-medium';
 
-export function Sidebar({ user }: { user: SessionUser | null }) {
+export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpenTheme?: () => void }) {
     const router = useRouter();
     const navigate = useNavigate();
     const { pathname, searchStr } = useLocation();
     const urlQuery = pathname === '/movies'
         ? new URLSearchParams(searchStr).get('q') ?? ''
+        : '';
+    const urlKind = pathname === '/movies'
+        ? new URLSearchParams(searchStr).get('kind') ?? ''
         : '';
     const [ query, setQuery ] = useState(urlQuery);
 
@@ -52,7 +56,10 @@ export function Sidebar({ user }: { user: SessionUser | null }) {
             if (!trimmed && pathname !== '/movies') return;
             navigate({
                 to: '/movies',
-                search: trimmed ? { q: trimmed } : {},
+                search: {
+                    ...(trimmed ? { q: trimmed } : {}),
+                    ...(urlKind ? { kind: urlKind as 'MOVIE' | 'SERIES' | 'CARTOON' } : {}),
+                },
                 replace: pathname === '/movies',
             });
         }, 300);
@@ -68,7 +75,7 @@ export function Sidebar({ user }: { user: SessionUser | null }) {
     return (
         <div className="flex h-full flex-col gap-4 p-4">
             <Link to="/" className="flex items-center gap-2 px-1 text-lg font-bold tracking-tight">
-                <Clapperboard className="size-6 text-primary"/>
+                <Film className="size-6 text-primary"/>
                 Movie<span className="text-primary">Nest</span>
             </Link>
 
@@ -91,39 +98,89 @@ export function Sidebar({ user }: { user: SessionUser | null }) {
                     activeOptions={{ exact: true }}
                 >
                     <Home/>
-                    Дашборд
+                    Фильмотека
                 </Link>
                 <Link
                     to="/movies"
-                    className={navLinkClass}
-                    activeProps={{ className: cn(navLinkClass, navLinkActive) }}
-                    activeOptions={{ exact: true }}
+                    search={{ kind: 'MOVIE' }}
+                    className={cn(navLinkClass, pathname === '/movies' && urlKind === 'MOVIE' && navLinkActive)}
                 >
                     <Film/>
-                    Все фильмы
+                    Фильмы
+                </Link>
+                <Link
+                    to="/movies"
+                    search={{ kind: 'SERIES' }}
+                    className={cn(navLinkClass, pathname === '/movies' && urlKind === 'SERIES' && navLinkActive)}
+                >
+                    <Film/>
+                    Сериалы
+                </Link>
+                <Link
+                    to="/movies"
+                    search={{ kind: 'CARTOON' }}
+                    className={cn(navLinkClass, pathname === '/movies' && urlKind === 'CARTOON' && navLinkActive)}
+                >
+                    <Film/>
+                    Мультфильмы
                 </Link>
                 {user ? (
-                    <Link
-                        to="/my"
-                        className={navLinkClass}
-                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
-                    >
-                        <Bookmark/>
-                        Мои списки
-                    </Link>
+                    <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
+                        <div className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Мои списки
+                        </div>
+                        <Link
+                            to="/my"
+                            className={cn(navLinkClass, pathname === '/my' && navLinkActive)}
+                        >
+                            <Bookmark/>
+                            К просмотру
+                        </Link>
+                        <Link
+                            to="/my"
+                            className={navLinkClass}
+                        >
+                            <Check/>
+                            Просмотрено
+                        </Link>
+                    </div>
                 ) : null}
             </nav>
 
             {user ? (
-                <Button asChild size="sm" className="justify-start">
-                    <Link to="/movies/new">
-                        <Plus/>
-                        Добавить фильм
-                    </Link>
-                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button size="sm" className="justify-start">
+                            <Plus/>
+                            Добавить
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                        <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'MOVIE' } })}>
+                            <Film/>
+                            Фильм
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'SERIES' } })}>
+                            <Film/>
+                            Сериал
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'CARTOON' } })}>
+                            <Film/>
+                            Мультфильм
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             ) : null}
 
             <div className="mt-auto flex flex-col gap-1">
+                <button
+                    type="button"
+                    onClick={onOpenTheme}
+                    className={cn(navLinkClass, 'w-full text-left')}
+                >
+                    <Palette/>
+                    Оформление
+                </button>
                 {user ? (
                     <>
                         <Link

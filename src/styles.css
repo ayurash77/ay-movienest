@@ -4,8 +4,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
+:root,
+:root[data-theme='golden-show'] {
     --background: oklch(0.16 0.02 270);
+    --surface: oklch(0.18 0.022 270);
     --foreground: oklch(0.95 0.01 270);
     --card: oklch(0.21 0.025 270);
     --card-foreground: oklch(0.95 0.01 270);
@@ -25,11 +27,137 @@
     --input: oklch(0.3 0.03 270);
     --ring: oklch(0.75 0.16 70);
     --star: oklch(0.8 0.16 85);
-    --radius: 0.625rem;
+    --radius: 0.5rem;
+}
+
+:root[data-theme='catppuccin'] {
+    --background: #1e1e2e;
+    --surface: #242438;
+    --foreground: #cdd6f4;
+    --card: #181825;
+    --card-foreground: #cdd6f4;
+    --popover: #181825;
+    --popover-foreground: #cdd6f4;
+    --primary: #cba6f7;
+    --primary-foreground: #11111b;
+    --secondary: #313244;
+    --secondary-foreground: #cdd6f4;
+    --muted: #313244;
+    --muted-foreground: #a6adc8;
+    --accent: #45475a;
+    --accent-foreground: #f5e0dc;
+    --destructive: #f38ba8;
+    --destructive-foreground: #11111b;
+    --border: #45475a;
+    --input: #45475a;
+    --ring: #cba6f7;
+    --star: #f9e2af;
+    --radius: 0.5rem;
+}
+
+:root[data-theme='onedark'] {
+    --background: #16191d;
+    --surface: #1b1f26;
+    --foreground: #abb2bf;
+    --card: #1d1f23;
+    --card-foreground: #abb2bf;
+    --popover: #1d1f23;
+    --popover-foreground: #abb2bf;
+    --primary: #61afef;
+    --primary-foreground: #1b222c;
+    --secondary: #23272e;
+    --secondary-foreground: #abb2bf;
+    --muted: #23272e;
+    --muted-foreground: #828997;
+    --accent: #2c313c;
+    --accent-foreground: #d7dae0;
+    --destructive: #e06c75;
+    --destructive-foreground: #1b222c;
+    --border: #3e4452;
+    --input: #3e4452;
+    --ring: #61afef;
+    --star: #e5c07b;
+    --radius: 0.5rem;
+}
+
+:root[data-theme='dracula'] {
+    --background: #282a36;
+    --surface: #303241;
+    --foreground: #f8f8f2;
+    --card: #21222c;
+    --card-foreground: #f8f8f2;
+    --popover: #21222c;
+    --popover-foreground: #f8f8f2;
+    --primary: #bd93f9;
+    --primary-foreground: #282a36;
+    --secondary: #44475a;
+    --secondary-foreground: #f8f8f2;
+    --muted: #44475a;
+    --muted-foreground: #6272a4;
+    --accent: #44475a;
+    --accent-foreground: #f8f8f2;
+    --destructive: #ff5555;
+    --destructive-foreground: #282a36;
+    --border: #44475a;
+    --input: #44475a;
+    --ring: #bd93f9;
+    --star: #f1fa8c;
+    --radius: 0.5rem;
+}
+
+:root[data-theme='ayu'] {
+    --background: #10141c;
+    --surface: #141923;
+    --foreground: #bfbdb6;
+    --card: #0d1017;
+    --card-foreground: #bfbdb6;
+    --popover: #0d1017;
+    --popover-foreground: #bfbdb6;
+    --primary: #e6b450;
+    --primary-foreground: #10141c;
+    --secondary: #161a24;
+    --secondary-foreground: #bfbdb6;
+    --muted: #161a24;
+    --muted-foreground: #5a6673;
+    --accent: #1b1f29;
+    --accent-foreground: #bfbdb6;
+    --destructive: #d95757;
+    --destructive-foreground: #10141c;
+    --border: #1b1f29;
+    --input: #1b1f29;
+    --ring: #e6b450;
+    --star: #ffb454;
+    --radius: 0.5rem;
+}
+
+:root[data-theme='shotmate'] {
+    --background: oklch(0.245 0.014 268);
+    --surface: oklch(0.265 0.016 268);
+    --foreground: oklch(0.9 0.03 270);
+    --card: oklch(0.3 0.02 270);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.23 0.014 275);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.7 0.035 275 / 0.8);
+    --primary-foreground: oklch(0.21 0.006 285.885);
+    --secondary: oklch(0.5 0.25 260);
+    --secondary-foreground: oklch(0.9 0.15 250);
+    --muted: oklch(0.28 0.02 270);
+    --muted-foreground: oklch(0.65 0.04 275);
+    --accent: oklch(0.38 0.02 270 / 0.75);
+    --accent-foreground: oklch(1 0 0);
+    --destructive: oklch(0.5 0.2 18);
+    --destructive-foreground: oklch(1 0.12 20);
+    --border: oklch(0.32 0.022 275);
+    --input: oklch(0.25 0.018 275 / 0.8);
+    --ring: oklch(0.7 0.5 255);
+    --star: oklch(0.82 0.18 85);
+    --radius: 0.5rem;
 }
 
 @theme inline {
     --color-background: var(--background);
+    --color-surface: var(--surface);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
     --color-card-foreground: var(--card-foreground);
@@ -62,4 +190,28 @@ body {
     'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+* {
+    scrollbar-color: var(--primary) var(--background);
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--primary) 68%, var(--background));
+    border: 3px solid var(--background);
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }

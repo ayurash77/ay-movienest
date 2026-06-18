@@ -6,6 +6,7 @@ import { getAuthUser } from './session';
 
 export type MovieCardData = {
     id: string;
+    kind: MovieKind;
     title: string;
     year: number;
     country: string;
@@ -16,13 +17,15 @@ export type MovieCardData = {
 };
 
 export type HomeMovies = {
-    topWeek: MovieCardData[];
-    topMonth: MovieCardData[];
     latest: MovieCardData[];
 };
 
 export const movieSortOptions = [ 'new', 'rating', 'year', 'title' ] as const;
 export type MovieSort = (typeof movieSortOptions)[number];
+export const movieSortDirOptions = [ 'asc', 'desc' ] as const;
+export type MovieSortDir = (typeof movieSortDirOptions)[number];
+export const movieKindOptions = [ 'MOVIE', 'SERIES', 'CARTOON' ] as const;
+export type MovieKind = (typeof movieKindOptions)[number];
 
 async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> {
     if (ids.length === 0) return new Map();
@@ -52,6 +55,7 @@ async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> 
                 movie.id,
                 {
                     id: movie.id,
+                    kind: movie.kind,
                     title: movie.title,
                     year: movie.year,
                     country: movie.country,
@@ -65,48 +69,21 @@ async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> 
     );
 }
 
-async function topRatedSince(since: Date, take: number) {
-    const grouped = await db.rating.groupBy({
-        by: [ 'movieId' ],
-        where: { createdAt: { gte: since } },
-        _avg: { value: true },
-        _count: { movieId: true },
-        orderBy: [
-            { _avg: { value: 'desc' } },
-            { _count: { movieId: 'desc' } },
-        ],
-        take,
-    });
-    return grouped.map((g) => g.movieId);
-}
-
 export const getHomeMovies = createServerFn({ method: 'GET' }).handler(
     async (): Promise<HomeMovies> => {
-        const now = Date.now();
-        const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
-        const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
-
-        const [ weekIds, monthIds, latestMovies ] = await Promise.all([
-            topRatedSince(weekAgo, 10),
-            topRatedSince(monthAgo, 10),
-            db.movie.findMany({
-                orderBy: { createdAt: 'desc' },
-                take: 5,
-                select: { id: true },
-            }),
-        ]);
+        const latestMovies = await db.movie.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 200,
+            select: { id: true },
+        });
 
         const latestIds = latestMovies.map((m) => m.id);
-        const cards = await toMovieCards([
-            ...new Set([ ...weekIds, ...monthIds, ...latestIds ]),
-        ]);
+        const cards = await toMovieCards(latestIds);
 
         const pick = (ids: string[]) =>
             ids.map((id) => cards.get(id)).filter((c): c is MovieCardData => Boolean(c));
 
         return {
-            topWeek: pick(weekIds),
-            topMonth: pick(monthIds),
             latest: pick(latestIds),
         };
     },
@@ -115,6 +92,8 @@ export const getHomeMovies = createServerFn({ method: 'GET' }).handler(
 const searchMoviesSchema = z.object({
     q: z.string().trim().max(200).optional(),
     sort: z.enum(movieSortOptions).optional(),
+    dir: z.enum(movieSortDirOptions).optional(),
+    kind: z.enum(movieKindOptions).optional(),
 });
 
 export const searchMovies = createServerFn({ method: 'GET' })
@@ -124,14 +103,19 @@ export const searchMovies = createServerFn({ method: 'GET' })
         const movies = await db.movie.findMany({
             where: q
                 ? {
-                    OR: [
-                        { title: { contains: q, mode: 'insensitive' } },
-                        { director: { contains: q, mode: 'insensitive' } },
-                        { country: { contains: q, mode: 'insensitive' } },
-                        { genres: { has: q.toLowerCase() } },
+                    AND: [
+                        data.kind ? { kind: data.kind } : {},
+                        {
+                            OR: [
+                                { title: { contains: q, mode: 'insensitive' } },
+                                { director: { contains: q, mode: 'insensitive' } },
+                                { country: { contains: q, mode: 'insensitive' } },
+                                { genres: { has: q.toLowerCase() } },
+                            ],
+                        },
                     ],
                 }
-                : {},
+                : data.kind ? { kind: data.kind } : {},
             orderBy: { createdAt: 'desc' },
             take: 200,
             select: { id: true },
@@ -144,12 +128,16 @@ export const searchMovies = createServerFn({ method: 'GET' })
             .filter((c): c is MovieCardData => Boolean(c));
 
         const sort: MovieSort = data.sort ?? 'new';
+        const dir: MovieSortDir = data.dir ?? 'desc';
+        const factor = dir === 'asc' ? -1 : 1;
         if (sort === 'rating') {
-            list.sort((a, b) => b.avgRating - a.avgRating || b.ratingCount - a.ratingCount);
+            list.sort((a, b) => factor * (b.avgRating - a.avgRating || b.ratingCount - a.ratingCount));
         } else if (sort === 'year') {
-            list.sort((a, b) => b.year - a.year);
+            list.sort((a, b) => factor * (b.year - a.year));
         } else if (sort === 'title') {
-            list.sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+            list.sort((a, b) => factor * b.title.localeCompare(a.title, 'ru'));
+        } else if (dir === 'asc') {
+            list.reverse();
         }
 
         return list;
@@ -157,6 +145,7 @@ export const searchMovies = createServerFn({ method: 'GET' })
 
 export type MovieDetails = {
     id: string;
+    kind: MovieKind;
     title: string;
     year: number;
     country: string;
@@ -206,6 +195,7 @@ export const getMovie = createServerFn({ method: 'GET' })
 
         return {
             id: movie.id,
+            kind: movie.kind,
             title: movie.title,
             year: movie.year,
             country: movie.country,
@@ -226,6 +216,7 @@ export const getMovie = createServerFn({ method: 'GET' })
     });
 
 const movieFieldsSchema = z.object({
+    kind: z.enum(movieKindOptions).optional(),
     title: z.string().trim().min(1).max(200),
     year: z.coerce.number().int().min(1888).max(2100),
     country: z.string().trim().min(1).max(100),
@@ -245,6 +236,7 @@ const movieFieldsSchema = z.object({
 });
 
 export type MovieFormFields = {
+    kind?: MovieKind;
     title: string;
     year: number;
     country: string;
@@ -263,6 +255,7 @@ function splitList(value: string | undefined) {
 function toMovieData(data: z.output<typeof movieFieldsSchema>) {
     return {
         title: data.title,
+        kind: data.kind ?? 'MOVIE',
         year: data.year,
         country: data.country,
         description: data.description,

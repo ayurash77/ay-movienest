@@ -1,19 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
-import { Sparkles } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MovieForm } from '@/components/movies/MovieForm';
-import { aiLookupMovie } from '@/server/ai';
-import { createMovie, type MovieFormFields } from '@/server/movies';
+import { lookupMovie } from '@/server/movie-lookup';
+import { createMovie, movieKindOptions, type MovieFormFields } from '@/server/movies';
 
 export const Route = createFileRoute('/movies/new')({
-    beforeLoad: ({ context }) => {
+    validateSearch: z.object({
+        kind: z.enum(movieKindOptions).optional(),
+    }),
+    beforeLoad: ({ context, search }) => {
         if (!context.user) {
-            throw redirect({ to: '/sign-in', search: { redirectTo: '/movies/new' } });
+            throw redirect({
+                to: '/sign-in',
+                search: {
+                    redirectTo: search.kind
+                        ? `/movies/new?kind=${search.kind}`
+                        : '/movies/new',
+                },
+            });
         }
     },
     component: NewMoviePage,
@@ -21,24 +32,30 @@ export const Route = createFileRoute('/movies/new')({
 
 function NewMoviePage() {
     const navigate = useNavigate();
-    const [ aiTitle, setAiTitle ] = useState('');
+    const { kind } = Route.useSearch();
+    const [ lookupTitle, setLookupTitle ] = useState('');
     const [ isLookingUp, setIsLookingUp ] = useState(false);
-    const [ aiDefaults, setAiDefaults ] = useState<Partial<MovieFormFields> | null>(null);
+    const [ lookupDefaults, setLookupDefaults ] = useState<Partial<MovieFormFields>>({ kind: kind ?? 'MOVIE' });
+
+    useEffect(() => {
+        setLookupDefaults((current) => ({ ...current, kind: kind ?? current.kind ?? 'MOVIE' }));
+    }, [ kind ]);
 
     const handleLookup = async () => {
-        const title = aiTitle.trim();
+        const title = lookupTitle.trim();
         if (title.length < 2) return;
 
         setIsLookingUp(true);
         try {
-            const result = await aiLookupMovie({ data: { title } });
+            const result = await lookupMovie({ data: { title } });
             if (!result.ok) {
                 toast.error(result.error);
                 return;
             }
 
             const movie = result.movie;
-            setAiDefaults({
+            setLookupDefaults({
+                kind: movie.kind ?? 'MOVIE',
                 title: movie.title ?? title,
                 year: movie.year ?? new Date().getFullYear(),
                 country: movie.country ?? '',
@@ -51,7 +68,7 @@ function NewMoviePage() {
             });
             toast.success('Форма заполнена — проверьте данные перед сохранением');
         } catch {
-            toast.error('Не удалось получить данные о фильме');
+            toast.error('Не удалось получить данные');
         } finally {
             setIsLookingUp(false);
         }
@@ -62,11 +79,11 @@ function NewMoviePage() {
             <Card className="border-primary/30">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                        <Sparkles className="size-4 text-primary"/>
-                        Быстрое заполнение с ИИ
+                        <Search className="size-4 text-primary"/>
+                        Быстрое заполнение
                     </CardTitle>
                     <CardDescription>
-                        Введите название — ИИ найдёт данные о фильме и заполнит форму. Проверьте результат перед сохранением.
+                        Введите название — приложение найдёт данные в открытых источниках и заполнит форму. Проверьте результат перед сохранением.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -78,13 +95,13 @@ function NewMoviePage() {
                         className="flex gap-2"
                     >
                         <Input
-                            value={aiTitle}
-                            onChange={(e) => setAiTitle(e.target.value)}
+                            value={lookupTitle}
+                            onChange={(e) => setLookupTitle(e.target.value)}
                             placeholder="Например: Криминальное чтиво"
                             maxLength={200}
-                            aria-label="Название фильма для поиска"
+                            aria-label="Название для поиска"
                         />
-                        <Button type="submit" disabled={isLookingUp || aiTitle.trim().length < 2}>
+                        <Button type="submit" disabled={isLookingUp || lookupTitle.trim().length < 2}>
                             {isLookingUp ? 'Ищем…' : 'Заполнить'}
                         </Button>
                     </form>
@@ -97,8 +114,8 @@ function NewMoviePage() {
                 </CardHeader>
                 <CardContent>
                     <MovieForm
-                        key={aiDefaults ? JSON.stringify(aiDefaults) : 'empty'}
-                        defaults={aiDefaults ?? undefined}
+                        key={JSON.stringify(lookupDefaults)}
+                        defaults={lookupDefaults}
                         submitLabel="Добавить фильм"
                         onSubmit={async (fields) => {
                             const result = await createMovie({ data: fields });

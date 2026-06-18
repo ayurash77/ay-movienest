@@ -91,7 +91,7 @@ export function CommentsSection({ movieId, comments, isAuthed }: CommentsSection
             ) : (
                 <ul className="flex flex-col gap-3">
                     {comments.map((comment) => (
-                        <li key={comment.id} className="rounded-xl border border-border bg-card p-3">
+                        <li key={comment.id} className="rounded-lg border border-border bg-card p-3">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span className="font-medium text-foreground">{comment.authorName}</span>
                                 <span>{formatCommentDate(comment.createdAt)}</span>

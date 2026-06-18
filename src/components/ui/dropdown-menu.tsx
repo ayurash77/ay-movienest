@@ -1,10 +1,12 @@
 import * as React from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
+import { Check } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
+const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 function DropdownMenuContent({
     className,
@@ -41,6 +43,52 @@ function DropdownMenuItem({
     );
 }
 
+function DropdownMenuCheckboxItem({
+    className,
+    children,
+    ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+    return (
+        <DropdownMenuPrimitive.CheckboxItem
+            className={cn(
+                "relative flex cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                className,
+            )}
+            {...props}
+        >
+            <span className="absolute left-2 flex size-4 items-center justify-center">
+                <DropdownMenuPrimitive.ItemIndicator>
+                    <Check className="size-4"/>
+                </DropdownMenuPrimitive.ItemIndicator>
+            </span>
+            {children}
+        </DropdownMenuPrimitive.CheckboxItem>
+    );
+}
+
+function DropdownMenuRadioItem({
+    className,
+    children,
+    ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+    return (
+        <DropdownMenuPrimitive.RadioItem
+            className={cn(
+                "relative flex cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                className,
+            )}
+            {...props}
+        >
+            <span className="absolute left-2 flex size-4 items-center justify-center">
+                <DropdownMenuPrimitive.ItemIndicator>
+                    <Check className="size-4"/>
+                </DropdownMenuPrimitive.ItemIndicator>
+            </span>
+            {children}
+        </DropdownMenuPrimitive.RadioItem>
+    );
+}
+
 function DropdownMenuSeparator({
     className,
     ...props
@@ -53,4 +101,13 @@ function DropdownMenuSeparator({
     );
 }
 
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator };
+export {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuCheckboxItem,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+};

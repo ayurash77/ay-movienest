@@ -26,7 +26,7 @@ function initials(name: string) {
 
 function StatTile({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
     return (
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
             <span className="text-primary [&_svg]:size-5">{icon}</span>
             <span>
                 <span className="block text-xl font-bold leading-tight">{value}</span>

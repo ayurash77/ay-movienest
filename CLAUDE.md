@@ -27,23 +27,24 @@ Deployed to Timeweb Cloud App Platform from the GitHub repo via the root `Docker
 
 ## Architecture
 
-MovieNest is a movie-library web app: weekly/monthly top-10, latest additions, movie pages, 1–5 star ratings. Registered users (email + password) can add movies and rate them.
+MovieNest is a movie-library web app for movies, series, and cartoons: grouped card catalogue, movie pages, comments, watch lists, and 1–5 star ratings. Registered users (email + password) can add entries and rate them.
 
 Single full-stack **TanStack Start** app — no separate API server. All DB access goes through server functions (`createServerFn`) in `src/server/`; the Start compiler turns them into RPC calls from the client.
 
 - `src/server/auth.ts` — signUp / signIn / signOut / getSessionUser server fns
 - `src/server/session.ts` — **server-only**: session CRUD + httpOnly cookie helpers
 - `src/server/password.ts` — scrypt hashing (node:crypto, no deps)
-- `src/server/movies.ts` — home lists, movie details, searchMovies, createMovie, rateMovie
+- `src/server/movies.ts` — grouped catalogue data, movie details, searchMovies, createMovie/updateMovie, rateMovie, watch lists
+- `src/server/movie-lookup.ts` — no-token quick form fill via Wikipedia/Wikidata, including poster thumbnail and best-effort kind/country/director/cast metadata
 - `src/server/uploads.ts` — poster file upload (FormData server fn); delegates persistence to `src/server/storage.ts`
 - `src/server/storage.ts` — storage abstraction with two backends, selected by env: **s3** (uploads to an S3-compatible bucket, returns the public object URL) when `S3_*` vars are set, else **local** (writes to `uploads/posters/`, served by `src/routes/uploads.posters.$file.tsx`)
 - `src/lib/db.ts` — singleton PrismaClient
 - `src/routes/` — file-based routes; `__root.tsx` `beforeLoad` puts the session user into router context (`context.user`), used by guards (`movies/new`) and UI
 - `prisma/seed.ts` — demo users/movies/ratings; generates gradient SVG posters into `public/posters/`
 
-### Ranking logic
+### Catalogue logic
 
-Top-10 week/month rank by average of ratings *created in the last 7/30 days* (ties broken by count); cards display the overall average. Re-rating a movie updates the rating's `createdAt`, pushing it back into the weekly top.
+Cards default to two grouping levels: domestic/foreign and then country. The client can disable either grouping and hide countries. `Movie.kind` separates movies, series, and cartoons; the migration defaults existing rows to `MOVIE`.
 
 ### Pitfall: import protection
 

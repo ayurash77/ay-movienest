@@ -14,6 +14,12 @@ type MovieFormProps = {
     onSubmit: (fields: MovieFormFields) => Promise<void>;
 };
 
+const KIND_LABELS: Record<NonNullable<MovieFormFields['kind']>, string> = {
+    MOVIE: 'Фильм',
+    SERIES: 'Сериал',
+    CARTOON: 'Мультфильм',
+};
+
 export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
     const [ isSubmitting, setIsSubmitting ] = useState(false);
 
@@ -37,6 +43,7 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
             }
 
             await onSubmit({
+                kind: String(form.get('kind') ?? 'MOVIE') as MovieFormFields['kind'],
                 title: String(form.get('title') ?? ''),
                 year: Number(form.get('year') ?? 0),
                 country: String(form.get('country') ?? ''),
@@ -58,6 +65,21 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+                <Label htmlFor="kind">Тип *</Label>
+                <select
+                    id="kind"
+                    name="kind"
+                    required
+                    defaultValue={defaults?.kind ?? 'MOVIE'}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                    {Object.entries(KIND_LABELS).map(([ value, label ]) => (
+                        <option key={value} value={value}>{label}</option>
+                    ))}
+                </select>
+            </div>
+
             <div className="flex flex-col gap-2">
                 <Label htmlFor="title">Название *</Label>
                 <Input id="title" name="title" required maxLength={200} defaultValue={defaults?.title ?? ''}/>

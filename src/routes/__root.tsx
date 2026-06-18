@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { createRootRoute, HeadContent, Link, Outlet, Scripts, useLocation } from '@tanstack/react-router';
-import { Clapperboard, Menu } from 'lucide-react';
+import { Film, Menu } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 import appCss from '../styles.css?url';
 import { Sidebar } from '@/components/Sidebar';
+import { ThemeDialog } from '@/components/ThemeDialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getSessionUser } from '@/server/auth';
@@ -18,6 +19,7 @@ export const Route = createRootRoute({
         ],
         links: [
             { rel: 'stylesheet', href: appCss },
+            { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' },
         ],
     }),
     beforeLoad: async () => {
@@ -32,6 +34,7 @@ function RootComponent() {
     const { user } = Route.useRouteContext();
     const { pathname } = useLocation();
     const [ isMobileMenuOpen, setIsMobileMenuOpen ] = useState(false);
+    const [ isThemeOpen, setIsThemeOpen ] = useState(false);
 
     // Закрываем мобильное меню при переходе на другую страницу
     useEffect(() => {
@@ -39,13 +42,13 @@ function RootComponent() {
     }, [ pathname ]);
 
     return (
-        <div className="flex min-h-svh">
-            <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r border-border bg-card/30 md:block">
-                <Sidebar user={user}/>
+        <div className="flex min-h-svh bg-background">
+            <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r border-border bg-background shadow-[10px_0_30px_rgb(0_0_0/0.18)] md:block">
+                <Sidebar user={user} onOpenTheme={() => setIsThemeOpen(true)}/>
             </aside>
 
-            <div className="flex min-w-0 flex-1 flex-col">
-                <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md md:hidden">
+            <div className="flex min-w-0 flex-1 flex-col bg-surface">
+                <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-background/90 px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md md:hidden">
                     <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon" aria-label="Открыть меню">
@@ -53,11 +56,17 @@ function RootComponent() {
                             </Button>
                         </SheetTrigger>
                         <SheetContent>
-                            <Sidebar user={user}/>
+                            <Sidebar
+                                user={user}
+                                onOpenTheme={() => {
+                                    setIsMobileMenuOpen(false);
+                                    setIsThemeOpen(true);
+                                }}
+                            />
                         </SheetContent>
                     </Sheet>
                     <Link to="/" className="flex items-center gap-2 text-base font-bold tracking-tight">
-                        <Clapperboard className="size-5 text-primary"/>
+                        <Film className="size-5 text-primary"/>
                         Movie<span className="text-primary">Nest</span>
                     </Link>
                 </header>
@@ -69,6 +78,7 @@ function RootComponent() {
                     MovieNest — ваша библиотека фильмов
                 </footer>
             </div>
+            <ThemeDialog open={isThemeOpen} onOpenChange={setIsThemeOpen}/>
             <Toaster theme="dark" position="bottom-right"/>
         </div>
     );
@@ -76,11 +86,16 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="ru" className="dark">
+        <html lang="ru" className="dark" suppressHydrationWarning>
             <head>
                 <HeadContent/>
             </head>
-            <body>
+            <body className="scrollbar-thumb-primary scrollbar-track-background">
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: "try{const t=localStorage.getItem('movienest:theme');if(['golden-show','catppuccin','onedark','dracula','ayu','shotmate'].includes(t))document.documentElement.dataset.theme=t;}catch{}",
+                    }}
+                />
                 {children}
                 <Scripts/>
             </body>

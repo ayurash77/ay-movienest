@@ -1,36 +1,48 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { CalendarDays, Flame, Sparkles } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { z } from 'zod';
 
-import { MovieSection } from '@/components/movies/MovieSection';
-import { getHomeMovies } from '@/server/movies';
+import { MovieCatalogControls } from '@/components/movies/MovieCatalogControls';
+import { MovieGallery } from '@/components/movies/MovieGallery';
+import { movieSortDirOptions, movieSortOptions, searchMovies } from '@/server/movies';
 
 export const Route = createFileRoute('/')({
-    loader: async () => getHomeMovies(),
+    validateSearch: z.object({
+        q: z.string().optional(),
+        sort: z.enum(movieSortOptions).optional(),
+        dir: z.enum(movieSortDirOptions).optional(),
+    }),
+    loaderDeps: ({ search }) => ({ q: search.q, sort: search.sort, dir: search.dir }),
+    loader: async ({ deps }) => searchMovies({ data: deps }),
     component: HomePage,
 });
 
 function HomePage() {
-    const { topWeek, topMonth, latest } = Route.useLoaderData();
+    const movies = Route.useLoaderData();
+    const { q, sort, dir } = Route.useSearch();
+    const navigate = useNavigate({ from: Route.fullPath });
 
     return (
-        <div className="flex flex-col gap-10">
-            <MovieSection
-                title="Топ-10 недели"
-                icon={<Flame className="size-5 text-primary"/>}
-                movies={topWeek}
-                emptyText="На этой неделе оценок ещё не было"
-            />
-            <MovieSection
-                title="Топ-10 месяца"
-                icon={<CalendarDays className="size-5 text-primary"/>}
-                movies={topMonth}
-                emptyText="В этом месяце оценок ещё не было"
-            />
-            <MovieSection
-                title="Новинки"
-                icon={<Sparkles className="size-5 text-primary"/>}
-                movies={latest}
-                emptyText="Фильмы ещё не добавлены"
+        <div className="flex flex-col gap-6">
+            <h1 className="text-2xl font-bold">Фильмотека</h1>
+            <MovieGallery
+                movies={movies}
+                emptyText={`Ничего не найдено${q ? ` по запросу «${q}»` : ''}`}
+                controlsStart={
+                    <MovieCatalogControls
+                        q={q}
+                        sort={sort}
+                        dir={dir}
+                        onQueryChange={(nextQ) =>
+                            navigate({ search: (prev) => ({ ...prev, q: nextQ }), replace: true })
+                        }
+                        onSortChange={(nextSort) =>
+                            navigate({ search: (prev) => ({ ...prev, sort: nextSort }), replace: true })
+                        }
+                        onDirChange={(nextDir) =>
+                            navigate({ search: (prev) => ({ ...prev, dir: nextDir }), replace: true })
+                        }
+                    />
+                }
             />
         </div>
     );

@@ -66,7 +66,7 @@ function MoviePage() {
             </div>
 
             <div className="flex flex-col gap-8 md:flex-row">
-                <div className="w-full max-w-72 shrink-0 self-start overflow-hidden rounded-xl border border-border">
+                <div className="w-full max-w-72 shrink-0 self-start overflow-hidden rounded-lg border border-border">
                     <MoviePoster posterUrl={movie.posterUrl} title={movie.title}/>
                 </div>
 
@@ -137,7 +137,7 @@ function MoviePage() {
                         {movie.description}
                     </p>
 
-                    <div className="mt-2 rounded-xl border border-border bg-card p-4">
+                    <div className="mt-2 rounded-lg border border-border bg-card p-4">
                         {user ? (
                             <div className="flex flex-col gap-2">
                                 <span className="text-sm font-medium">

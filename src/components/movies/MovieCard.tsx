@@ -12,7 +12,7 @@ export function MovieCard({ movie, className }: { movie: MovieCardData; classNam
             to="/movies/$movieId"
             params={{ movieId: movie.id }}
             className={cn(
-                'group flex w-40 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10',
+                'group flex w-40 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-[0_14px_34px_rgb(0_0_0/0.24)] transition-all hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_46px_rgb(0_0_0/0.34)]',
                 className,
             )}
         >

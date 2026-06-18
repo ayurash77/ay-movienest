@@ -51,6 +51,7 @@ function EditMoviePage() {
                 <MovieForm
                     submitLabel="Сохранить"
                     defaults={{
+                        kind: movie.kind,
                         title: movie.title,
                         year: movie.year,
                         country: movie.country,
