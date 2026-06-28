@@ -1,18 +1,15 @@
 import { createServerFn } from '@tanstack/react-start';
+import type { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 
 import { formatRuDateTime } from '@/lib/date-format';
 import { toServedUploadUrl } from '@/lib/upload-url';
 
-async function getDb() {
-    return (await import('@/lib/db')).db;
-}
-
-async function getAuthUser() {
-    return (await import('./session')).getAuthUser();
-}
-
-type Db = Awaited<ReturnType<typeof getDb>>;
+type Db = PrismaClient;
+type AuthUser = {
+    id: string;
+    role: string;
+};
 
 export type ChatUser = {
     id: string;
@@ -29,6 +26,7 @@ export type ChatMessageData = {
     createdAtLabel: string;
     author: ChatUser;
     isMine: boolean;
+    canManage: boolean;
     replyTo: {
         id: string;
         text: string;
@@ -88,6 +86,11 @@ const sendMessageSchema = z.object({
 });
 
 const threadSchema = z.object({ threadId: z.string().min(1) });
+const messageSchema = z.object({ messageId: z.string().min(1) });
+const updateMessageSchema = z.object({
+    messageId: z.string().min(1),
+    text: z.string().trim().max(2000),
+});
 
 function directThreadKey(a: string, b: string) {
     return [ a, b ].sort().join(':');
@@ -160,6 +163,22 @@ async function assertParticipant(db: Db, threadId: string, userId: string) {
     return Boolean(participant);
 }
 
+async function getManageableMessage(db: Db, messageId: string, user: AuthUser) {
+    const message = await db.chatMessage.findUnique({
+        where: { id: messageId },
+        select: { id: true, threadId: true, userId: true, imageUrl: true },
+    });
+
+    if (!message) return { ok: false as const, error: 'Сообщение не найдено' };
+    if (user.role === 'ADMIN') return { ok: true as const, message };
+    if (message.userId !== user.id) return { ok: false as const, error: 'Нет прав на это сообщение' };
+
+    const isParticipant = await assertParticipant(db, message.threadId, user.id);
+    if (!isParticipant) return { ok: false as const, error: 'Диалог не найден' };
+
+    return { ok: true as const, message };
+}
+
 async function unreadCounts(db: Db, userId: string) {
     const rows = await db.$queryRawUnsafe<Array<{ threadId: string; count: bigint }>>(
         `
@@ -219,7 +238,7 @@ async function mapThreads(db: Db, userId: string): Promise<ChatThreadSummary[]> 
     });
 }
 
-async function getMessages(db: Db, threadId: string, userId: string): Promise<ChatMessageData[]> {
+async function getMessages(db: Db, threadId: string, user: AuthUser): Promise<ChatMessageData[]> {
     const messages = await db.chatMessage.findMany({
         where: { threadId },
         orderBy: { createdAt: 'desc' },
@@ -243,14 +262,15 @@ async function getMessages(db: Db, threadId: string, userId: string): Promise<Ch
             createdAt,
             createdAtLabel: formatRuDateTime(createdAt),
             author: mapChatUser(message.user),
-            isMine: message.userId === userId,
+            isMine: message.userId === user.id,
+            canManage: message.userId === user.id || user.role === 'ADMIN',
             replyTo: message.replyTo
                 ? {
                     id: message.replyTo.id,
                     text: message.replyTo.text,
                     imageUrl: toServedUploadUrl(message.replyTo.imageUrl),
                     authorName: message.replyTo.user.name,
-                    isMine: message.replyTo.userId === userId,
+                    isMine: message.replyTo.userId === user.id,
                 }
                 : null,
         };
@@ -271,7 +291,8 @@ async function markRead(db: Db, threadId: string, userId: string) {
 }
 
 export const getUnreadChatCount = createServerFn({ method: 'GET' }).handler(async () => {
-    const db = await getDb();
+    const { db } = await import('@/lib/db');
+    const { getAuthUser } = await import('./session');
     const user = await getAuthUser();
     if (!user) return 0;
     const rows = await db.$queryRawUnsafe<Array<{ count: bigint }>>(
@@ -291,7 +312,8 @@ export const getUnreadChatCount = createServerFn({ method: 'GET' }).handler(asyn
 export const getChatPageData = createServerFn({ method: 'GET' })
     .validator(chatPageSchema)
     .handler(async ({ data }): Promise<ChatPageData> => {
-        const db = await getDb();
+        const { db } = await import('@/lib/db');
+        const { getAuthUser } = await import('./session');
         const user = await getAuthUser();
         if (!user) {
             return { ok: false, error: 'Нужен вход', threads: [], activeThread: null, messages: [] };
@@ -328,7 +350,7 @@ export const getChatPageData = createServerFn({ method: 'GET' })
 
         const [ threads, messages ] = await Promise.all([
             mapThreads(db, user.id),
-            activeThreadId ? getMessages(db, activeThreadId, user.id) : Promise.resolve([]),
+            activeThreadId ? getMessages(db, activeThreadId, user) : Promise.resolve([]),
         ]);
 
         return {
@@ -349,6 +371,7 @@ export const uploadChatImage = createServerFn({ method: 'POST' })
         return data;
     })
     .handler(async ({ data }) => {
+        const { getAuthUser } = await import('./session');
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };
@@ -384,7 +407,8 @@ export const uploadChatImage = createServerFn({ method: 'POST' })
 export const sendChatMessage = createServerFn({ method: 'POST' })
     .validator(sendMessageSchema)
     .handler(async ({ data }) => {
-        const db = await getDb();
+        const { db } = await import('@/lib/db');
+        const { getAuthUser } = await import('./session');
         const user = await getAuthUser();
         if (!user) return { ok: false as const, error: 'Нужен вход' };
 
@@ -457,10 +481,48 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
         return { ok: true as const, threadId };
     });
 
+export const updateChatMessage = createServerFn({ method: 'POST' })
+    .validator(updateMessageSchema)
+    .handler(async ({ data }) => {
+        const { db } = await import('@/lib/db');
+        const { getAuthUser } = await import('./session');
+        const user = await getAuthUser();
+        if (!user) return { ok: false as const, error: 'Нужен вход' };
+
+        const manageable = await getManageableMessage(db, data.messageId, user);
+        if (!manageable.ok) return manageable;
+        if (!data.text && !manageable.message.imageUrl) {
+            return { ok: false as const, error: 'Сообщение не может быть пустым' };
+        }
+
+        await db.chatMessage.update({
+            where: { id: manageable.message.id },
+            data: { text: data.text },
+        });
+
+        return { ok: true as const, threadId: manageable.message.threadId };
+    });
+
+export const deleteChatMessage = createServerFn({ method: 'POST' })
+    .validator(messageSchema)
+    .handler(async ({ data }) => {
+        const { db } = await import('@/lib/db');
+        const { getAuthUser } = await import('./session');
+        const user = await getAuthUser();
+        if (!user) return { ok: false as const, error: 'Нужен вход' };
+
+        const manageable = await getManageableMessage(db, data.messageId, user);
+        if (!manageable.ok) return manageable;
+
+        await db.chatMessage.delete({ where: { id: manageable.message.id } });
+        return { ok: true as const, threadId: manageable.message.threadId };
+    });
+
 export const markChatThreadRead = createServerFn({ method: 'POST' })
     .validator(threadSchema)
     .handler(async ({ data }) => {
-        const db = await getDb();
+        const { db } = await import('@/lib/db');
+        const { getAuthUser } = await import('./session');
         const user = await getAuthUser();
         if (!user) return { ok: false as const, error: 'Нужен вход' };
         if (!await assertParticipant(db, data.threadId, user.id)) {

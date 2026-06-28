@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router';
-import { Loader2, Paperclip, Reply, Send, X } from 'lucide-react';
+import { Check, Loader2, Paperclip, Pencil, Reply, Send, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
+    deleteChatMessage,
     getChatPageData,
     sendChatMessage,
+    updateChatMessage,
     uploadChatImage,
     type ChatMessageData,
     type ChatThreadSummary,
@@ -85,18 +87,72 @@ function replyPreviewText(message: Pick<ChatMessageData, 'text' | 'imageUrl'>) {
     return message.text || (message.imageUrl ? 'Фото' : 'Сообщение');
 }
 
-function MessageBubble({ message, onReply }: { message: ChatMessageData; onReply: (message: ChatMessageData) => void }) {
+function MessageActions({
+    message,
+    busy,
+    onReply,
+    onEdit,
+    onDelete,
+}: {
+    message: ChatMessageData;
+    busy: boolean;
+    onReply: (message: ChatMessageData) => void;
+    onEdit: (message: ChatMessageData) => void;
+    onDelete: (message: ChatMessageData) => void;
+}) {
+    return (
+        <div className="mb-1 flex shrink-0 flex-col items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+            <button
+                type="button"
+                onClick={() => onReply(message)}
+                className="grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                aria-label="Ответить"
+            >
+                <Reply className="size-3.5"/>
+            </button>
+            {message.canManage ? (
+                <>
+                    <button
+                        type="button"
+                        onClick={() => onEdit(message)}
+                        disabled={busy}
+                        className="grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                        aria-label="Редактировать"
+                    >
+                        <Pencil className="size-3.5"/>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onDelete(message)}
+                        disabled={busy}
+                        className="grid size-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive disabled:pointer-events-none disabled:opacity-50"
+                        aria-label="Удалить"
+                    >
+                        <Trash2 className="size-3.5"/>
+                    </button>
+                </>
+            ) : null}
+        </div>
+    );
+}
+
+function MessageBubble({
+    message,
+    busy,
+    onReply,
+    onEdit,
+    onDelete,
+}: {
+    message: ChatMessageData;
+    busy: boolean;
+    onReply: (message: ChatMessageData) => void;
+    onEdit: (message: ChatMessageData) => void;
+    onDelete: (message: ChatMessageData) => void;
+}) {
     return (
         <div className={cn('group flex items-end gap-2', message.isMine ? 'justify-end' : 'justify-start')}>
             {message.isMine ? (
-                <button
-                    type="button"
-                    onClick={() => onReply(message)}
-                    className="mb-1 grid size-7 place-items-center rounded-full text-muted-foreground opacity-100 transition-colors hover:bg-accent hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
-                    aria-label="Ответить"
-                >
-                    <Reply className="size-3.5"/>
-                </button>
+                <MessageActions message={message} busy={busy} onReply={onReply} onEdit={onEdit} onDelete={onDelete}/>
             ) : null}
             {!message.isMine ? <ChatAvatar user={message.author} className="size-7"/> : null}
             <div
@@ -146,14 +202,7 @@ function MessageBubble({ message, onReply }: { message: ChatMessageData; onReply
                 </div>
             </div>
             {!message.isMine ? (
-                <button
-                    type="button"
-                    onClick={() => onReply(message)}
-                    className="mb-1 grid size-7 place-items-center rounded-full text-muted-foreground opacity-100 transition-colors hover:bg-accent hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
-                    aria-label="Ответить"
-                >
-                    <Reply className="size-3.5"/>
-                </button>
+                <MessageActions message={message} busy={busy} onReply={onReply} onEdit={onEdit} onDelete={onDelete}/>
             ) : null}
         </div>
     );
@@ -164,9 +213,11 @@ function ChatPage() {
     const router = useRouter();
     const [ text, setText ] = useState('');
     const [ replyTo, setReplyTo ] = useState<ChatMessageData | null>(null);
+    const [ editingMessage, setEditingMessage ] = useState<ChatMessageData | null>(null);
     const [ imageFile, setImageFile ] = useState<File | null>(null);
     const [ imagePreviewUrl, setImagePreviewUrl ] = useState<string | null>(null);
     const [ isSending, setIsSending ] = useState(false);
+    const [ busyMessageId, setBusyMessageId ] = useState<string | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
     const fileRef = useRef<HTMLInputElement | null>(null);
@@ -198,14 +249,52 @@ function ChatPage() {
 
     useEffect(() => {
         setReplyTo(null);
+        setEditingMessage(null);
         clearImageDraft();
     }, [ activeThreadId, clearImageDraft ]);
 
     useEffect(() => () => clearImageDraft(), [ clearImageDraft ]);
 
     const handleReply = (message: ChatMessageData) => {
+        if (editingMessage) setText('');
+        setEditingMessage(null);
         setReplyTo(message);
         window.requestAnimationFrame(() => inputRef.current?.focus());
+    };
+
+    const handleEdit = (message: ChatMessageData) => {
+        setReplyTo(null);
+        clearImageDraft();
+        setEditingMessage(message);
+        setText(message.text);
+        window.requestAnimationFrame(() => inputRef.current?.focus());
+    };
+
+    const cancelEdit = () => {
+        setEditingMessage(null);
+        setText('');
+    };
+
+    const handleDelete = async (message: ChatMessageData) => {
+        if (busyMessageId) return;
+        if (!window.confirm('Удалить сообщение?')) return;
+
+        setBusyMessageId(message.id);
+        try {
+            const result = await deleteChatMessage({ data: { messageId: message.id } });
+            if (result.ok) {
+                if (editingMessage?.id === message.id) cancelEdit();
+                if (replyTo?.id === message.id) setReplyTo(null);
+                await router.invalidate();
+                notifyChatChanged();
+            } else {
+                toast.error(result.error);
+            }
+        } catch {
+            toast.error('Не удалось удалить сообщение');
+        } finally {
+            setBusyMessageId(null);
+        }
     };
 
     const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -234,6 +323,32 @@ function ChatPage() {
         event.preventDefault();
         if (!data.ok || !data.activeThread) return;
         const trimmed = text.trim();
+        if (editingMessage) {
+            if ((!trimmed && !editingMessage.imageUrl) || isSending) return;
+
+            setIsSending(true);
+            try {
+                const result = await updateChatMessage({
+                    data: {
+                        messageId: editingMessage.id,
+                        text: trimmed,
+                    },
+                });
+                if (result.ok) {
+                    cancelEdit();
+                    await router.invalidate();
+                    notifyChatChanged();
+                } else {
+                    toast.error(result.error);
+                }
+            } catch {
+                toast.error('Не удалось изменить сообщение');
+            } finally {
+                setIsSending(false);
+            }
+            return;
+        }
+
         if ((!trimmed && !imageFile) || isSending) return;
 
         setIsSending(true);
@@ -278,6 +393,7 @@ function ChatPage() {
     const messages = data.ok ? data.messages : [];
     const activeThread = data.ok ? data.activeThread : null;
     const title = activeThread?.friend?.name ?? 'Чат';
+    const hasComposerPreview = Boolean(replyTo || editingMessage || imagePreviewUrl);
 
     return (
         <div className="flex h-full min-h-0 w-full flex-1 flex-col">
@@ -318,13 +434,20 @@ function ChatPage() {
                             <div
                                 className={cn(
                                     'min-h-0 flex-1 overflow-y-auto px-0 pt-2 md:px-4 md:pt-3',
-                                    replyTo || imagePreviewUrl ? 'pb-40' : 'pb-24',
+                                    hasComposerPreview ? 'pb-40' : 'pb-24',
                                 )}
                             >
                                 {messages.length ? (
                                     <div className="flex flex-col gap-2">
                                         {messages.map((message) => (
-                                            <MessageBubble key={message.id} message={message} onReply={handleReply}/>
+                                            <MessageBubble
+                                                key={message.id}
+                                                message={message}
+                                                busy={busyMessageId === message.id}
+                                                onReply={handleReply}
+                                                onEdit={handleEdit}
+                                                onDelete={handleDelete}
+                                            />
                                         ))}
                                         <div ref={bottomRef}/>
                                     </div>
@@ -335,6 +458,17 @@ function ChatPage() {
                                 )}
                             </div>
                             <div className="absolute inset-x-0 bottom-0 z-10 px-0 pb-3 pt-8 md:px-4 md:pb-4">
+                                {editingMessage ? (
+                                    <div className="mb-2 flex items-center gap-2 rounded-xl bg-card px-3 py-2 text-xs shadow-[0_8px_22px_rgb(0_0_0/0.14)]">
+                                        <div className="min-w-0 flex-1 border-l-2 border-primary pl-2">
+                                            <div className="font-semibold text-foreground">Редактирование</div>
+                                            <div className="truncate text-muted-foreground">{replyPreviewText(editingMessage)}</div>
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" onClick={cancelEdit} aria-label="Отменить редактирование">
+                                            <X className="size-4"/>
+                                        </Button>
+                                    </div>
+                                ) : null}
                                 {replyTo ? (
                                     <div className="mb-2 flex items-center gap-2 rounded-xl bg-card px-3 py-2 text-xs shadow-[0_8px_22px_rgb(0_0_0/0.14)]">
                                         <div className="min-w-0 flex-1 border-l-2 border-primary pl-2">
@@ -372,7 +506,7 @@ function ChatPage() {
                                         size="icon"
                                         className="size-10 shrink-0 rounded-full bg-popover shadow-[0_10px_28px_rgb(0_0_0/0.22)] disabled:opacity-80"
                                         onClick={() => fileRef.current?.click()}
-                                        disabled={isSending}
+                                        disabled={isSending || Boolean(editingMessage)}
                                         aria-label="Прикрепить фото"
                                     >
                                         <Paperclip className="size-5"/>
@@ -381,13 +515,19 @@ function ChatPage() {
                                         ref={inputRef}
                                         value={text}
                                         onChange={(event) => setText(event.target.value)}
-                                        placeholder="Сообщение"
+                                        placeholder={editingMessage ? 'Редактировать сообщение' : 'Сообщение'}
                                         maxLength={2000}
                                         autoComplete="off"
                                         className="h-10 rounded-full px-4 shadow-[0_10px_28px_rgb(0_0_0/0.22)] backdrop-blur-md"
                                     />
-                                    <Button type="submit" size="icon" className="size-10 shrink-0 rounded-full shadow-[0_10px_28px_rgb(0_0_0/0.24)] disabled:opacity-80" disabled={isSending || (!text.trim() && !imageFile)} aria-label="Отправить">
-                                        {isSending ? <Loader2 className="size-5 animate-spin"/> : <Send className="size-5"/>}
+                                    <Button
+                                        type="submit"
+                                        size="icon"
+                                        className="size-10 shrink-0 rounded-full shadow-[0_10px_28px_rgb(0_0_0/0.24)] disabled:opacity-80"
+                                        disabled={isSending || (editingMessage ? (!text.trim() && !editingMessage.imageUrl) : (!text.trim() && !imageFile))}
+                                        aria-label={editingMessage ? 'Сохранить' : 'Отправить'}
+                                    >
+                                        {isSending ? <Loader2 className="size-5 animate-spin"/> : editingMessage ? <Check className="size-5"/> : <Send className="size-5"/>}
                                     </Button>
                                 </form>
                             </div>
