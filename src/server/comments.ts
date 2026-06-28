@@ -55,9 +55,15 @@ export const addComment = createServerFn({ method: 'POST' })
             return { ok: false as const, error: 'Фильм не найден' };
         }
 
-        await db.comment.create({
+        const comment = await db.comment.create({
             data: { movieId: data.movieId, userId: user.id, text: data.text },
         });
+        try {
+            const { createCommentNotifications } = await import('./notifications');
+            await createCommentNotifications(comment.id);
+        } catch {
+            // Уведомления не должны блокировать отправку комментария.
+        }
 
         return { ok: true as const };
     });

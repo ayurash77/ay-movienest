@@ -98,7 +98,60 @@ export async function createMovieNotifications(movieId: string, actorId: string)
             body: movie.title,
             href: `/movies/${movie.id}`,
         })),
-        skipDuplicates: true,
+    });
+}
+
+async function actorAudienceIds(actorId: string) {
+    const db = await getDb();
+    const [ followers, friends ] = await Promise.all([
+        db.userFollow.findMany({
+            where: { followingId: actorId },
+            select: { followerId: true },
+        }),
+        db.userFriend.findMany({
+            where: { friendId: actorId },
+            select: { userId: true },
+        }),
+    ]);
+
+    return [
+        ...new Set([
+            ...followers.map((item) => item.followerId),
+            ...friends.map((item) => item.userId),
+        ]),
+    ].filter((id) => id !== actorId);
+}
+
+export async function createCommentNotifications(commentId: string) {
+    const db = await getDb();
+    const comment = await db.comment.findUnique({
+        where: { id: commentId },
+        select: {
+            text: true,
+            userId: true,
+            user: { select: { name: true } },
+            movie: { select: { id: true, title: true } },
+        },
+    });
+    if (!comment) return;
+
+    const recipientIds = await actorAudienceIds(comment.userId);
+    if (!recipientIds.length) return;
+
+    const body = comment.text.length > 180
+        ? `${comment.text.slice(0, 177)}...`
+        : comment.text;
+
+    await db.notification.createMany({
+        data: recipientIds.map((userId) => ({
+            userId,
+            actorId: comment.userId,
+            movieId: comment.movie.id,
+            type: 'COMMENT',
+            title: `${comment.user.name} оставил комментарий`,
+            body: `${comment.movie.title}: ${body}`,
+            href: `/movies/${comment.movie.id}`,
+        })),
     });
 }
 

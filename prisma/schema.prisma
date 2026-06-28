@@ -105,7 +105,6 @@ model Notification {
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
-  @@unique([userId, type, actorId, movieId])
   @@index([userId, readAt, createdAt])
   @@index([actorId])
   @@index([movieId])

@@ -95,9 +95,11 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         };
 
         void refresh();
+        const timer = window.setInterval(refresh, 12000);
         window.addEventListener('movienest:notifications-changed', handleChanged);
         return () => {
             cancelled = true;
+            window.clearInterval(timer);
             window.removeEventListener('movienest:notifications-changed', handleChanged);
         };
     }, [ user, pathname ]);
