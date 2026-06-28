@@ -8,23 +8,25 @@ datasource db {
 }
 
 model User {
-  id                 String         @id @default(cuid())
-  email              String         @unique
+  id                 String            @id @default(cuid())
+  email              String            @unique
   name               String
   passwordHash       String
-  role               String         @default("USER")
-  createdAt          DateTime       @default(now())
+  role               String            @default("USER")
+  createdAt          DateTime          @default(now())
   sessions           Session[]
   ratings            Rating[]
   movies             Movie[]
   comments           Comment[]
   watchEntries       WatchEntry[]
-  friends            UserFriend[]   @relation("UserFriends")
-  friendOf           UserFriend[]   @relation("FriendOf")
-  following          UserFollow[]   @relation("UserFollowing")
-  followers          UserFollow[]   @relation("UserFollowers")
-  notifications      Notification[] @relation("UserNotifications")
-  actedNotifications Notification[] @relation("NotificationActor")
+  friends            UserFriend[]      @relation("UserFriends")
+  friendOf           UserFriend[]      @relation("FriendOf")
+  following          UserFollow[]      @relation("UserFollowing")
+  followers          UserFollow[]      @relation("UserFollowers")
+  notifications      Notification[]    @relation("UserNotifications")
+  actedNotifications Notification[]    @relation("NotificationActor")
+  chatParticipants   ChatParticipant[]
+  chatMessages       ChatMessage[]
 }
 
 model Session {
@@ -108,6 +110,44 @@ model Notification {
   @@index([userId, readAt, createdAt])
   @@index([actorId])
   @@index([movieId])
+}
+
+model ChatThread {
+  id           String            @id @default(cuid())
+  privateKey   String?           @unique
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+
+  @@index([updatedAt])
+}
+
+model ChatParticipant {
+  id         String     @id @default(cuid())
+  threadId   String
+  thread     ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@unique([threadId, userId])
+  @@index([userId])
+  @@index([userId, lastReadAt])
+}
+
+model ChatMessage {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime   @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([userId])
 }
 
 enum MovieKind {

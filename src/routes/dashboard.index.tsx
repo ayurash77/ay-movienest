@@ -7,6 +7,7 @@ import {
     BellOff,
     Film,
     Loader2,
+    MessageCircle,
     Plus,
     Search,
     ShieldCheck,
@@ -282,6 +283,11 @@ function FriendCard({ user, busy, onRemove }: {
                     Фильмов: {user.movieCount} · Оценок: {user.ratingCount}
                 </p>
             </Link>
+            <Button asChild variant="ghost" size="icon" className="size-8" aria-label="Написать">
+                <Link to="/chat" search={{ user: user.id }}>
+                    <MessageCircle/>
+                </Link>
+            </Button>
             <Button
                 type="button"
                 variant="ghost"
@@ -490,17 +496,27 @@ function AdminUserCardView({ user, roleBusy, followBusy, canManageRoles, onSetRo
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-2">
                 {!user.isSelf ? (
-                    <Button
-                        type="button"
-                        variant={user.isFollowing ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-7"
-                        disabled={followBusy}
-                        onClick={() => onToggleFollow(user)}
-                    >
-                        {followBusy ? <Loader2 className="animate-spin"/> : user.isFollowing ? <BellOff/> : <Bell/>}
-                        {user.isFollowing ? 'Отписаться' : 'Подписаться'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        {user.isFriend ? (
+                            <Button asChild variant="outline" size="sm" className="h-7">
+                                <Link to="/chat" search={{ user: user.id }}>
+                                    <MessageCircle/>
+                                    Написать
+                                </Link>
+                            </Button>
+                        ) : null}
+                        <Button
+                            type="button"
+                            variant={user.isFollowing ? 'default' : 'outline'}
+                            size="sm"
+                            className="h-7"
+                            disabled={followBusy}
+                            onClick={() => onToggleFollow(user)}
+                        >
+                            {followBusy ? <Loader2 className="animate-spin"/> : user.isFollowing ? <BellOff/> : <Bell/>}
+                            {user.isFollowing ? 'Отписаться' : 'Подписаться'}
+                        </Button>
+                    </div>
                 ) : (
                     <span className="text-[11px] text-muted-foreground">Это вы</span>
                 )}

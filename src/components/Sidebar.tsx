@@ -4,6 +4,7 @@ import {
     Bell,
     Bookmark,
     Check,
+    MessageCircle,
     LayoutDashboard,
     Film,
     Home,
@@ -26,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { signOut, type SessionUser } from '@/server/auth';
+import { getUnreadChatCount } from '@/server/chat';
 import { getUnreadNotificationCount } from '@/server/notifications';
 
 function initials(name: string) {
@@ -60,6 +62,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         : '';
     const [ query, setQuery ] = useState(urlQuery);
     const [ unreadNotifications, setUnreadNotifications ] = useState(0);
+    const [ unreadChats, setUnreadChats ] = useState(0);
 
     // Дебаунс: поиск из сайдбара ведёт в каталог с query в URL
     useEffect(() => {
@@ -82,13 +85,20 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
     useEffect(() => {
         if (!user) {
             setUnreadNotifications(0);
+            setUnreadChats(0);
             return;
         }
 
         let cancelled = false;
         const refresh = async () => {
-            const count = await getUnreadNotificationCount();
-            if (!cancelled) setUnreadNotifications(count);
+            const [ notificationCount, chatCount ] = await Promise.all([
+                getUnreadNotificationCount(),
+                getUnreadChatCount(),
+            ]);
+            if (!cancelled) {
+                setUnreadNotifications(notificationCount);
+                setUnreadChats(chatCount);
+            }
         };
         const handleChanged = () => {
             void refresh();
@@ -97,10 +107,12 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         void refresh();
         const timer = window.setInterval(refresh, 12000);
         window.addEventListener('movienest:notifications-changed', handleChanged);
+        window.addEventListener('movienest:chat-changed', handleChanged);
         return () => {
             cancelled = true;
             window.clearInterval(timer);
             window.removeEventListener('movienest:notifications-changed', handleChanged);
+            window.removeEventListener('movienest:chat-changed', handleChanged);
         };
     }, [ user, pathname ]);
 
@@ -146,6 +158,17 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <LayoutDashboard/>
                         Дашборд
+                    </Link>
+                ) : null}
+                {user ? (
+                    <Link
+                        to="/chat"
+                        className={navLinkClass}
+                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
+                    >
+                        <MessageCircle/>
+                        <span className="min-w-0 flex-1 truncate">Чат</span>
+                        <NavCount value={unreadChats}/>
                     </Link>
                 ) : null}
                 {user ? (

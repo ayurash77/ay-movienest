@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import {
     ArrowLeft,
@@ -7,6 +7,7 @@ import {
     Bookmark,
     Check,
     Film,
+    MessageCircle,
     MessageSquare,
     ShieldCheck,
     Star,
@@ -174,6 +175,14 @@ function UserProfilePage() {
                                     {user.isFollowing ? <BellOff/> : <Bell/>}
                                     {user.isFollowing ? 'Отписаться' : 'Подписаться'}
                                 </Button>
+                                {user.isFriend ? (
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link to="/chat" search={{ user: user.id }}>
+                                            <MessageCircle/>
+                                            Написать
+                                        </Link>
+                                    </Button>
+                                ) : null}
                             </>
                         ) : null}
                         {user.canManage ? (

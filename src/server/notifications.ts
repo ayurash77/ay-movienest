@@ -168,7 +168,7 @@ export async function createUserMessageNotification(input: {
         data: {
             userId: input.recipientId,
             actorId: input.actorId,
-            type: 'USER_MESSAGE',
+            type: 'CHAT_MESSAGE',
             title: input.title,
             body: input.body ?? null,
             href: input.href ?? null,
