@@ -139,16 +139,21 @@ model ChatParticipant {
 }
 
 model ChatMessage {
-  id        String     @id @default(cuid())
+  id        String        @id @default(cuid())
   threadId  String
-  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  thread    ChatThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
   userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replyToId String?
+  replyTo   ChatMessage?  @relation("ChatMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   ChatMessage[] @relation("ChatMessageReplies")
+  imageUrl  String?
   text      String
-  createdAt DateTime   @default(now())
+  createdAt DateTime      @default(now())
 
   @@index([threadId, createdAt])
   @@index([userId])
+  @@index([replyToId])
 }
 
 enum MovieKind {

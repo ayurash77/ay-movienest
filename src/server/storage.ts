@@ -5,7 +5,7 @@ import type { S3Client } from '@aws-sdk/client-s3';
 
 import { uploadPathForKey } from '@/lib/upload-url';
 
-export type StorageSubdir = 'posters' | 'avatars';
+export type StorageSubdir = 'posters' | 'avatars' | 'chat';
 
 const s3Configured = Boolean(
     process.env.S3_BUCKET &&

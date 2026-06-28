@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Paperclip, Reply, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -11,10 +11,13 @@ import { cn } from '@/lib/utils';
 import {
     getChatPageData,
     sendChatMessage,
+    uploadChatImage,
     type ChatMessageData,
     type ChatThreadSummary,
     type ChatUser,
 } from '@/server/chat';
+
+const CHAT_IMAGE_MIME_TYPES = [ 'image/jpeg', 'image/png', 'image/webp' ];
 
 export const Route = createFileRoute('/chat')({
     validateSearch: z.object({
@@ -78,22 +81,63 @@ function ThreadButton({ thread, active }: { thread: ChatThreadSummary; active: b
     );
 }
 
-function MessageBubble({ message }: { message: ChatMessageData }) {
+function replyPreviewText(message: Pick<ChatMessageData, 'text' | 'imageUrl'>) {
+    return message.text || (message.imageUrl ? 'Фото' : 'Сообщение');
+}
+
+function MessageBubble({ message, onReply }: { message: ChatMessageData; onReply: (message: ChatMessageData) => void }) {
     return (
-        <div className={cn('flex items-end gap-2', message.isMine ? 'justify-end' : 'justify-start')}>
+        <div className={cn('group flex items-end gap-2', message.isMine ? 'justify-end' : 'justify-start')}>
+            {message.isMine ? (
+                <button
+                    type="button"
+                    onClick={() => onReply(message)}
+                    className="mb-1 grid size-7 place-items-center rounded-full text-muted-foreground opacity-100 transition-colors hover:bg-accent hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
+                    aria-label="Ответить"
+                >
+                    <Reply className="size-3.5"/>
+                </button>
+            ) : null}
             {!message.isMine ? <ChatAvatar user={message.author} className="size-7"/> : null}
             <div
                 className={cn(
                     'max-w-[82%] rounded-2xl px-3 py-2 shadow-[0_8px_22px_rgb(0_0_0/0.16)]',
                     message.isMine
-                        ? 'rounded-br-md bg-primary/75 text-primary-foreground'
-                        : 'rounded-bl-md bg-card text-card-foreground',
+                        ? 'rounded-br-none bg-primary/75 text-primary-foreground'
+                        : 'rounded-bl-none bg-card text-card-foreground',
                 )}
             >
                 {!message.isMine ? (
                     <div className="mb-1 text-xs font-semibold text-primary">{message.author.name}</div>
                 ) : null}
-                <p className="whitespace-pre-line text-sm leading-relaxed">{message.text}</p>
+                {message.replyTo ? (
+                    <div
+                        className={cn(
+                            'mb-2 max-h-16 overflow-hidden rounded-md border-l-2 px-2 py-1 text-xs',
+                            message.isMine
+                                ? 'border-primary-foreground/60 bg-primary-foreground/10 text-primary-foreground/85'
+                                : 'border-primary bg-background/50 text-muted-foreground',
+                        )}
+                    >
+                        <div className={cn('font-semibold', message.isMine ? 'text-primary-foreground' : 'text-foreground')}>
+                            {message.replyTo.authorName}
+                        </div>
+                        <div>{replyPreviewText(message.replyTo)}</div>
+                    </div>
+                ) : null}
+                {message.imageUrl ? (
+                    <a
+                        href={message.imageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-2 block overflow-hidden rounded-xl"
+                    >
+                        <img src={message.imageUrl} alt="" className="max-h-80 w-full object-cover"/>
+                    </a>
+                ) : null}
+                {message.text ? (
+                    <p className="whitespace-pre-line text-sm leading-relaxed">{message.text}</p>
+                ) : null}
                 <div className={cn(
                     'mt-1 text-right text-[10px]',
                     message.isMine ? 'text-primary-foreground/70' : 'text-muted-foreground',
@@ -101,6 +145,16 @@ function MessageBubble({ message }: { message: ChatMessageData }) {
                     {message.createdAtLabel}
                 </div>
             </div>
+            {!message.isMine ? (
+                <button
+                    type="button"
+                    onClick={() => onReply(message)}
+                    className="mb-1 grid size-7 place-items-center rounded-full text-muted-foreground opacity-100 transition-colors hover:bg-accent hover:text-foreground sm:opacity-0 sm:group-hover:opacity-100"
+                    aria-label="Ответить"
+                >
+                    <Reply className="size-3.5"/>
+                </button>
+            ) : null}
         </div>
     );
 }
@@ -109,9 +163,25 @@ function ChatPage() {
     const data = Route.useLoaderData();
     const router = useRouter();
     const [ text, setText ] = useState('');
+    const [ replyTo, setReplyTo ] = useState<ChatMessageData | null>(null);
+    const [ imageFile, setImageFile ] = useState<File | null>(null);
+    const [ imagePreviewUrl, setImagePreviewUrl ] = useState<string | null>(null);
     const [ isSending, setIsSending ] = useState(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const fileRef = useRef<HTMLInputElement | null>(null);
+    const imagePreviewRef = useRef<string | null>(null);
     const activeThreadId = data.ok ? data.activeThread?.id ?? null : null;
+
+    const clearImageDraft = useCallback(() => {
+        if (imagePreviewRef.current) {
+            URL.revokeObjectURL(imagePreviewRef.current);
+            imagePreviewRef.current = null;
+        }
+        setImageFile(null);
+        setImagePreviewUrl(null);
+        if (fileRef.current) fileRef.current.value = '';
+    }, []);
 
     useEffect(() => {
         const timer = window.setInterval(async () => {
@@ -126,19 +196,72 @@ function ChatPage() {
         if (activeThreadId) notifyChatChanged();
     }, [ activeThreadId, data.ok ? data.messages.length : 0 ]);
 
+    useEffect(() => {
+        setReplyTo(null);
+        clearImageDraft();
+    }, [ activeThreadId, clearImageDraft ]);
+
+    useEffect(() => () => clearImageDraft(), [ clearImageDraft ]);
+
+    const handleReply = (message: ChatMessageData) => {
+        setReplyTo(message);
+        window.requestAnimationFrame(() => inputRef.current?.focus());
+    };
+
+    const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        if (!file) return;
+
+        if (!CHAT_IMAGE_MIME_TYPES.includes(file.type)) {
+            toast.error('Поддерживаются только JPEG, PNG и WebP');
+            event.target.value = '';
+            return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+            toast.error('Файл больше 8 МБ');
+            event.target.value = '';
+            return;
+        }
+
+        clearImageDraft();
+        const previewUrl = URL.createObjectURL(file);
+        imagePreviewRef.current = previewUrl;
+        setImageFile(file);
+        setImagePreviewUrl(previewUrl);
+    };
+
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!data.ok || !data.activeThread) return;
         const trimmed = text.trim();
-        if (!trimmed || isSending) return;
+        if ((!trimmed && !imageFile) || isSending) return;
 
         setIsSending(true);
         try {
+            let imageUrl: string | undefined;
+            if (imageFile) {
+                const form = new FormData();
+                form.set('file', imageFile);
+                const uploaded = await uploadChatImage({ data: form });
+                if (!uploaded.ok) {
+                    toast.error(uploaded.error);
+                    return;
+                }
+                imageUrl = uploaded.url;
+            }
+
             const result = await sendChatMessage({
-                data: { threadId: data.activeThread.id, text: trimmed },
+                data: {
+                    threadId: data.activeThread.id,
+                    text: trimmed,
+                    replyToId: replyTo?.id,
+                    imageUrl,
+                },
             });
             if (result.ok) {
                 setText('');
+                setReplyTo(null);
+                clearImageDraft();
                 await router.invalidate();
                 notifyChatChanged();
             } else {
@@ -196,7 +319,7 @@ function ChatPage() {
                                 {messages.length ? (
                                     <div className="flex flex-col gap-2">
                                         {messages.map((message) => (
-                                            <MessageBubble key={message.id} message={message}/>
+                                            <MessageBubble key={message.id} message={message} onReply={handleReply}/>
                                         ))}
                                         <div ref={bottomRef}/>
                                     </div>
@@ -206,19 +329,55 @@ function ChatPage() {
                                     </p>
                                 )}
                             </div>
-                            <form onSubmit={handleSubmit} className="flex gap-2 border-t border-border/70 px-0 py-3 md:px-4">
-                                <Input
-                                    value={text}
-                                    onChange={(event) => setText(event.target.value)}
-                                    placeholder="Написать сообщение..."
-                                    maxLength={2000}
-                                    autoComplete="off"
-                                    className="rounded-full"
-                                />
-                                <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={isSending || !text.trim()} aria-label="Отправить">
-                                    {isSending ? <Loader2 className="animate-spin"/> : <Send/>}
-                                </Button>
-                            </form>
+                            <div className="border-t border-border/70 px-0 py-3 md:px-4">
+                                {replyTo ? (
+                                    <div className="mb-2 flex items-center gap-2 rounded-xl bg-card px-3 py-2 text-xs shadow-[0_8px_22px_rgb(0_0_0/0.14)]">
+                                        <div className="min-w-0 flex-1 border-l-2 border-primary pl-2">
+                                            <div className="font-semibold text-foreground">{replyTo.author.name}</div>
+                                            <div className="truncate text-muted-foreground">{replyPreviewText(replyTo)}</div>
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" onClick={() => setReplyTo(null)} aria-label="Отменить ответ">
+                                            <X className="size-4"/>
+                                        </Button>
+                                    </div>
+                                ) : null}
+                                {imagePreviewUrl ? (
+                                    <div className="mb-2 flex items-center gap-3 rounded-xl bg-card px-3 py-2 text-xs shadow-[0_8px_22px_rgb(0_0_0/0.14)]">
+                                        <img src={imagePreviewUrl} alt="" className="size-14 shrink-0 rounded-lg object-cover"/>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="font-semibold text-foreground">Фото</div>
+                                            <div className="truncate text-muted-foreground">{imageFile?.name}</div>
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" className="size-7 shrink-0" onClick={clearImageDraft} aria-label="Убрать фото">
+                                            <X className="size-4"/>
+                                        </Button>
+                                    </div>
+                                ) : null}
+                                <form onSubmit={handleSubmit} className="flex gap-2">
+                                    <input
+                                        ref={fileRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className="hidden"
+                                        onChange={handleImageChange}
+                                    />
+                                    <Button type="button" variant="outline" size="icon" className="shrink-0 rounded-full" onClick={() => fileRef.current?.click()} disabled={isSending} aria-label="Прикрепить фото">
+                                        <Paperclip/>
+                                    </Button>
+                                    <Input
+                                        ref={inputRef}
+                                        value={text}
+                                        onChange={(event) => setText(event.target.value)}
+                                        placeholder="Сообщение"
+                                        maxLength={2000}
+                                        autoComplete="off"
+                                        className="rounded-full"
+                                    />
+                                    <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={isSending || (!text.trim() && !imageFile)} aria-label="Отправить">
+                                        {isSending ? <Loader2 className="animate-spin"/> : <Send/>}
+                                    </Button>
+                                </form>
+                            </div>
                         </>
                     ) : (
                         <div className="grid flex-1 place-items-center px-6 text-center text-sm text-muted-foreground">

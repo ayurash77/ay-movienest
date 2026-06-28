@@ -24,10 +24,18 @@ export type ChatUser = {
 export type ChatMessageData = {
     id: string;
     text: string;
+    imageUrl: string | null;
     createdAt: string;
     createdAtLabel: string;
     author: ChatUser;
     isMine: boolean;
+    replyTo: {
+        id: string;
+        text: string;
+        imageUrl: string | null;
+        authorName: string;
+        isMine: boolean;
+    } | null;
 };
 
 export type ChatThreadSummary = {
@@ -61,10 +69,22 @@ const chatPageSchema = z.object({
     userId: z.string().min(1).optional(),
 });
 
+const CHAT_EXT_BY_MIME: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+};
+const MAX_CHAT_IMAGE_BYTES = 8 * 1024 * 1024;
+const chatImageUrlSchema = z.string().trim().regex(/^\/uploads\/chat\/[a-f0-9]+\.(jpg|png|webp)$/);
+
 const sendMessageSchema = z.object({
     threadId: z.string().min(1).optional(),
     userId: z.string().min(1).optional(),
-    text: z.string().trim().min(1).max(2000),
+    text: z.string().trim().max(2000).default(''),
+    replyToId: z.string().min(1).optional(),
+    imageUrl: chatImageUrlSchema.optional(),
+}).refine((value) => value.text.length > 0 || Boolean(value.imageUrl), {
+    message: 'Нужно написать сообщение или прикрепить фото',
 });
 
 const threadSchema = z.object({ threadId: z.string().min(1) });
@@ -189,7 +209,7 @@ async function mapThreads(db: Db, userId: string): Promise<ChatThreadSummary[]> 
             unreadCount: counts.get(thread.id) ?? 0,
             lastMessage: latest
                 ? {
-                    text: latest.text,
+                    text: latest.text || (latest.imageUrl ? 'Фото' : ''),
                     createdAt: latest.createdAt.toISOString(),
                     authorName: latest.user.name,
                     isMine: latest.userId === userId,
@@ -206,6 +226,11 @@ async function getMessages(db: Db, threadId: string, userId: string): Promise<Ch
         take: 200,
         include: {
             user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+            replyTo: {
+                include: {
+                    user: { select: { id: true, name: true } },
+                },
+            },
         },
     });
 
@@ -214,10 +239,20 @@ async function getMessages(db: Db, threadId: string, userId: string): Promise<Ch
         return {
             id: message.id,
             text: message.text,
+            imageUrl: toServedUploadUrl(message.imageUrl),
             createdAt,
             createdAtLabel: formatRuDateTime(createdAt),
             author: mapChatUser(message.user),
             isMine: message.userId === userId,
+            replyTo: message.replyTo
+                ? {
+                    id: message.replyTo.id,
+                    text: message.replyTo.text,
+                    imageUrl: toServedUploadUrl(message.replyTo.imageUrl),
+                    authorName: message.replyTo.user.name,
+                    isMine: message.replyTo.userId === userId,
+                }
+                : null,
         };
     });
 }
@@ -306,6 +341,46 @@ export const getChatPageData = createServerFn({ method: 'GET' })
         };
     });
 
+export const uploadChatImage = createServerFn({ method: 'POST' })
+    .validator((data: unknown) => {
+        if (!(data instanceof FormData)) {
+            throw new Error('Expected FormData');
+        }
+        return data;
+    })
+    .handler(async ({ data }) => {
+        const user = await getAuthUser();
+        if (!user) {
+            return { ok: false as const, error: 'Требуется авторизация' };
+        }
+
+        const file = data.get('file');
+        if (!(file instanceof File) || file.size === 0) {
+            return { ok: false as const, error: 'Файл не найден' };
+        }
+        if (file.size > MAX_CHAT_IMAGE_BYTES) {
+            return { ok: false as const, error: 'Файл больше 8 МБ' };
+        }
+
+        const ext = CHAT_EXT_BY_MIME[file.type];
+        if (!ext) {
+            return { ok: false as const, error: 'Поддерживаются только JPEG, PNG и WebP' };
+        }
+
+        try {
+            const { storeUpload } = await import('./storage');
+            const { url } = await storeUpload(
+                'chat',
+                ext,
+                Buffer.from(await file.arrayBuffer()),
+                file.type,
+            );
+            return { ok: true as const, url };
+        } catch {
+            return { ok: false as const, error: 'Не удалось сохранить фото' };
+        }
+    });
+
 export const sendChatMessage = createServerFn({ method: 'POST' })
     .validator(sendMessageSchema)
     .handler(async ({ data }) => {
@@ -325,9 +400,25 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
             return { ok: false as const, error: 'Диалог не найден' };
         }
 
+        if (data.replyToId) {
+            const replied = await db.chatMessage.findFirst({
+                where: { id: data.replyToId, threadId },
+                select: { id: true },
+            });
+            if (!replied) {
+                return { ok: false as const, error: 'Сообщение для ответа не найдено' };
+            }
+        }
+
         const [ message, thread ] = await db.$transaction([
             db.chatMessage.create({
-                data: { threadId, userId: user.id, text: data.text },
+                data: {
+                    threadId,
+                    userId: user.id,
+                    text: data.text,
+                    imageUrl: data.imageUrl,
+                    replyToId: data.replyToId,
+                },
                 include: { user: { select: { name: true } } },
             }),
             db.chatThread.update({
@@ -344,6 +435,7 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
         const recipients = thread.participants
             .map((participant) => participant.userId)
             .filter((id) => id !== user.id);
+        const notificationBody = message.text || 'Фото';
 
         if (recipients.length) {
             try {
@@ -352,7 +444,9 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
                     recipientId,
                     actorId: user.id,
                     title: `${message.user.name} написал сообщение`,
-                    body: message.text.length > 180 ? `${message.text.slice(0, 177)}...` : message.text,
+                    body: notificationBody.length > 180
+                        ? `${notificationBody.slice(0, 177)}...`
+                        : notificationBody,
                     href: `/chat?thread=${threadId}`,
                 })));
             } catch {
