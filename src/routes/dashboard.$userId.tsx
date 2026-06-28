@@ -17,6 +17,7 @@ import {
     X,
 } from 'lucide-react';
 
+import { PageTitle } from '@/components/AppTitle';
 import { MovieGallery } from '@/components/movies/MovieGallery';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -146,6 +147,7 @@ function UserProfilePage() {
 
     return (
         <div className="flex flex-col gap-6">
+            <PageTitle title={user.name}/>
             <Button variant="ghost" size="sm" className="w-fit -ml-2" onClick={() => navigate({ to: '/dashboard' })}>
                 <ArrowLeft/>
                 К дашборду

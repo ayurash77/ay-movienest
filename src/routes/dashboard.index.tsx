@@ -18,6 +18,7 @@ import {
     X,
 } from 'lucide-react';
 
+import { PageTitle } from '@/components/AppTitle';
 import { MovieGallery } from '@/components/movies/MovieGallery';
 import { Button } from '@/components/ui/button';
 import {
@@ -175,6 +176,7 @@ function DashboardPage() {
             onValueChange={handleTabChange}
             className="flex flex-col gap-5"
         >
+            <PageTitle title="Дашборд"/>
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <TabsList className="max-w-full overflow-x-auto">
                     <TabsTrigger value="movies">Мои фильмы</TabsTrigger>
@@ -195,7 +197,7 @@ function DashboardPage() {
                     controlsStart={(
                         <div className="flex items-center gap-2">
                             <Film className="size-5 text-primary"/>
-                            <h1 className="text-xl font-bold tracking-tight">Мои фильмы</h1>
+                            <h2 className="text-xl font-bold tracking-tight">Мои фильмы</h2>
                             <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
                                 {myMovies.length}
                             </span>
@@ -208,7 +210,7 @@ function DashboardPage() {
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                         <Users className="size-5 text-primary"/>
-                        <h1 className="text-xl font-bold tracking-tight">Друзья</h1>
+                        <h2 className="text-xl font-bold tracking-tight">Друзья</h2>
                         <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
                             {friends.length}
                         </span>
@@ -234,7 +236,7 @@ function DashboardPage() {
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                         <Users className="size-5 text-primary"/>
-                        <h1 className="text-xl font-bold tracking-tight">Пользователи</h1>
+                        <h2 className="text-xl font-bold tracking-tight">Пользователи</h2>
                         <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
                             {users.length}
                         </span>

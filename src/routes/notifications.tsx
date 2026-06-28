@@ -3,6 +3,7 @@ import { Bell, CheckCheck, Film, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { PageTitle } from '@/components/AppTitle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -124,16 +125,8 @@ function NotificationsPage() {
 
     return (
         <div className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <Bell className="size-5 text-primary"/>
-                    <h1 className="text-2xl font-bold">Уведомления</h1>
-                    {unreadCount ? (
-                        <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">
-                            {unreadCount}
-                        </span>
-                    ) : null}
-                </div>
+            <PageTitle title={unreadCount ? `Уведомления (${unreadCount})` : 'Уведомления'}/>
+            <div className="flex flex-wrap justify-end gap-3">
                 {unreadCount ? (
                     <Button
                         type="button"

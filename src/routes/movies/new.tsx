@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
+import { PageTitle } from '@/components/AppTitle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { MovieForm } from '@/components/movies/MovieForm';
@@ -77,6 +78,7 @@ function NewMoviePage() {
 
     return (
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+            <PageTitle title="Добавить фильм"/>
             <Card className="border-primary/30">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
@@ -110,9 +112,6 @@ function NewMoviePage() {
             </Card>
 
             <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl">Добавить фильм</CardTitle>
-                </CardHeader>
                 <CardContent>
                     <MovieForm
                         key={JSON.stringify(lookupDefaults)}

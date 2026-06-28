@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router';
-import { Loader2, MessageCircle, Send } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import { PageTitle } from '@/components/AppTitle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -53,8 +54,8 @@ function ThreadButton({ thread, active }: { thread: ChatThreadSummary; active: b
             to="/chat"
             search={{ thread: thread.id }}
             className={cn(
-                'flex w-full items-center gap-3 rounded-md border border-transparent px-2.5 py-2 text-left transition-colors hover:bg-accent',
-                active && 'border-card-border-active bg-card-active',
+                'flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-accent',
+                active && 'bg-card-active',
             )}
         >
             <ChatAvatar user={thread.friend}/>
@@ -83,10 +84,10 @@ function MessageBubble({ message }: { message: ChatMessageData }) {
             {!message.isMine ? <ChatAvatar user={message.author} className="size-7"/> : null}
             <div
                 className={cn(
-                    'max-w-[82%] rounded-lg border px-3 py-2 shadow-sm',
+                    'max-w-[82%] rounded-2xl px-3 py-2 shadow-[0_8px_22px_rgb(0_0_0/0.16)]',
                     message.isMine
-                        ? 'border-primary/30 bg-primary text-primary-foreground'
-                        : 'border-card-border bg-card',
+                        ? 'rounded-br-md bg-primary/75 text-primary-foreground'
+                        : 'rounded-bl-md bg-card text-card-foreground',
                 )}
             >
                 {!message.isMine ? (
@@ -153,21 +154,19 @@ function ChatPage() {
     const threads = data.threads;
     const messages = data.ok ? data.messages : [];
     const activeThread = data.ok ? data.activeThread : null;
+    const title = activeThread?.friend?.name ?? 'Чат';
 
     return (
-        <div className="flex h-[calc(100svh-7rem)] min-h-[34rem] flex-col gap-4">
-            <div className="flex items-center gap-2">
-                <MessageCircle className="size-5 text-primary"/>
-                <h1 className="text-2xl font-bold">Чат</h1>
-            </div>
+        <div className="flex h-[calc(100svh-6rem)] min-h-[32rem] flex-col md:h-[calc(100svh-7rem)]">
+            <PageTitle title={title} mobileBackTo={activeThread ? '/chat' : undefined}/>
 
             <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[18rem_minmax(0,1fr)]">
-                <aside className="min-h-0 rounded-lg border border-card-border bg-card p-2">
+                <aside className={cn('min-h-0 overflow-y-auto pr-1', activeThread && 'hidden md:block')}>
                     <div className="mb-2 px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Диалоги
                     </div>
                     {threads.length ? (
-                        <div className="flex max-h-full flex-col gap-1 overflow-y-auto pr-1">
+                        <div className="flex flex-col gap-1">
                             {threads.map((thread) => (
                                 <ThreadButton
                                     key={thread.id}
@@ -183,17 +182,17 @@ function ChatPage() {
                     )}
                 </aside>
 
-                <section className="flex min-h-0 flex-col rounded-lg border border-card-border bg-card">
+                <section className={cn('min-h-0 flex-col', activeThread ? 'flex' : 'hidden md:flex')}>
                     {activeThread ? (
                         <>
-                            <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+                            <div className="hidden items-center gap-3 border-b border-border/70 px-1 pb-3 md:flex">
                                 <ChatAvatar user={activeThread.friend} className="size-9"/>
                                 <div className="min-w-0">
                                     <div className="truncate text-sm font-semibold">{activeThread.friend?.name ?? 'Диалог'}</div>
                                     <div className="truncate text-xs text-muted-foreground">{activeThread.friend?.email}</div>
                                 </div>
                             </div>
-                            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                            <div className="min-h-0 flex-1 overflow-y-auto px-0 py-3 md:px-4">
                                 {messages.length ? (
                                     <div className="flex flex-col gap-2">
                                         {messages.map((message) => (
@@ -207,17 +206,17 @@ function ChatPage() {
                                     </p>
                                 )}
                             </div>
-                            <form onSubmit={handleSubmit} className="flex gap-2 border-t border-border p-3">
+                            <form onSubmit={handleSubmit} className="flex gap-2 border-t border-border/70 px-0 py-3 md:px-4">
                                 <Input
                                     value={text}
                                     onChange={(event) => setText(event.target.value)}
                                     placeholder="Написать сообщение..."
                                     maxLength={2000}
                                     autoComplete="off"
+                                    className="rounded-full"
                                 />
-                                <Button type="submit" disabled={isSending || !text.trim()}>
+                                <Button type="submit" size="icon" className="shrink-0 rounded-full" disabled={isSending || !text.trim()} aria-label="Отправить">
                                     {isSending ? <Loader2 className="animate-spin"/> : <Send/>}
-                                    <span className="hidden sm:inline">Отправить</span>
                                 </Button>
                             </form>
                         </>

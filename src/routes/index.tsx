@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import { PageTitle } from '@/components/AppTitle';
 import { MovieCatalogControls } from '@/components/movies/MovieCatalogControls';
 import { PaginatedMovieGallery } from '@/components/movies/PaginatedMovieGallery';
 import { movieSortDirOptions, movieSortOptions } from '@/lib/movie-data';
@@ -24,7 +25,7 @@ function HomePage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-bold">Фильмотека</h1>
+            <PageTitle title="Фильмотека"/>
             <PaginatedMovieGallery
                 initialPage={page}
                 query={{ q, sort, dir }}

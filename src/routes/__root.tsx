@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { createRootRoute, HeadContent, Link, Outlet, Scripts, useLocation } from '@tanstack/react-router';
-import { Film, Menu } from 'lucide-react';
+import { ArrowLeft, Film, Menu } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 import appCss from '../styles.css?url';
+import { AppTitleProvider, useAppTitle } from '@/components/AppTitle';
 import { ProfileDialog } from '@/components/ProfileDialog';
 import { Sidebar } from '@/components/Sidebar';
 import { ThemeDialog } from '@/components/ThemeDialog';
@@ -33,14 +34,21 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+    return (
+        <AppTitleProvider>
+            <RootLayout/>
+        </AppTitleProvider>
+    );
+}
+
+function RootLayout() {
     const { user } = Route.useRouteContext();
     const { pathname } = useLocation();
+    const appTitle = useAppTitle();
     const [ isMobileMenuOpen, setIsMobileMenuOpen ] = useState(false);
     const [ isProfileOpen, setIsProfileOpen ] = useState(false);
     const [ isThemeOpen, setIsThemeOpen ] = useState(false);
-    const headerTitle = pathname === '/dashboard' || pathname === '/dashboard/'
-        ? 'Дашборд'
-        : /^\/dashboard\/[^/]+$/.test(pathname) ? 'Профиль пользователя' : null;
+    const isChatRoute = pathname.startsWith('/chat');
 
     useEffect(() => {
         applyTheme(getStoredTheme(user?.id ?? null));
@@ -62,43 +70,65 @@ function RootComponent() {
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col bg-surface">
-                <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-background/90 px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md md:hidden">
-                    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                        <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label="Открыть меню">
-                                <Menu/>
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent>
-                            <Sidebar
-                                user={user}
-                                onOpenProfile={() => {
-                                    setIsMobileMenuOpen(false);
-                                    setIsProfileOpen(true);
-                                }}
-                                onOpenTheme={() => {
-                                    setIsMobileMenuOpen(false);
-                                    setIsThemeOpen(true);
-                                }}
-                            />
-                        </SheetContent>
-                    </Sheet>
-                    <Link to="/" className="flex items-center gap-2 text-base font-bold tracking-tight">
-                        <Film className="size-5 text-primary"/>
-                        {headerTitle ?? (
+                <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md">
+                    {appTitle?.mobileBackTo ? (
+                        <Button asChild variant="ghost" size="icon" className="md:hidden" aria-label="Назад">
+                            <Link to={appTitle.mobileBackTo}>
+                                <ArrowLeft/>
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Открыть меню">
+                                    <Menu/>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent>
+                                <Sidebar
+                                    user={user}
+                                    onOpenProfile={() => {
+                                        setIsMobileMenuOpen(false);
+                                        setIsProfileOpen(true);
+                                    }}
+                                    onOpenTheme={() => {
+                                        setIsMobileMenuOpen(false);
+                                        setIsThemeOpen(true);
+                                    }}
+                                />
+                            </SheetContent>
+                        </Sheet>
+                    )}
+                    {appTitle ? (
+                        <div className="min-w-0 truncate text-lg font-semibold tracking-tight">
+                            {appTitle.title}
+                        </div>
+                    ) : (
+                        <Link to="/" className="flex items-center gap-2 text-base font-bold tracking-tight">
+                            <Film className="size-5 text-primary"/>
                             <>
                                 Movie<span className="text-primary">Nest</span>
                             </>
-                        )}
-                    </Link>
+                        </Link>
+                    )}
+                    {!appTitle ? null : (
+                        <Link to="/" className="ml-auto hidden items-center gap-2 text-sm font-bold tracking-tight text-muted-foreground transition-colors hover:text-foreground md:flex">
+                            <Film className="size-4 text-primary"/>
+                            <>
+                                Movie<span className="text-primary">Nest</span>
+                            </>
+                        </Link>
+                    )}
                 </header>
 
-                <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+                <main className={isChatRoute ? 'mx-auto w-full max-w-6xl flex-1 px-3 py-3 md:px-4 md:py-5' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-5'}>
                     <Outlet/>
                 </main>
-                <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground">
-                    MovieNest — ваша библиотека фильмов
-                </footer>
+                {!isChatRoute ? (
+                    <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground">
+                        MovieNest — ваша библиотека фильмов
+                    </footer>
+                ) : null}
             </div>
             <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} user={user}/>
             <ThemeDialog open={isThemeOpen} onOpenChange={setIsThemeOpen} userId={user?.id ?? null}/>

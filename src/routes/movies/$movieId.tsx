@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-rout
 import { ArrowLeft, Clock, Clapperboard, ExternalLink, Globe, Pencil, PlayCircle, Tv, User, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { PageTitle } from '@/components/AppTitle';
 import { CommentsSection } from '@/components/movies/CommentsSection';
 import { MoviePoster } from '@/components/movies/MoviePoster';
 import { RatingStars } from '@/components/movies/RatingStars';
@@ -80,6 +81,7 @@ function MoviePage() {
 
     return (
         <div className="flex flex-col gap-6">
+            <PageTitle title={movie.title}/>
             <div className="flex items-center justify-between">
                 <Button asChild variant="ghost" size="sm">
                     <Link to="/">
@@ -103,12 +105,9 @@ function MoviePage() {
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-5">
-                    <div>
-                        <h1 className="text-3xl font-bold">{movie.title}</h1>
-                        <p className="mt-1 text-muted-foreground">
-                            {movie.year} · {movie.country}
-                        </p>
-                    </div>
+                    <p className="text-muted-foreground">
+                        {movie.year} · {movie.country}
+                    </p>
 
                     <div className="flex items-center gap-3">
                         <RatingStars value={movie.avgRating}/>

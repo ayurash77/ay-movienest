@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
 
+import { PageTitle } from '@/components/AppTitle';
 import { MovieCatalogControls } from '@/components/movies/MovieCatalogControls';
 import { PaginatedMovieGallery } from '@/components/movies/PaginatedMovieGallery';
 import { movieKindOptions, movieSortDirOptions, movieSortOptions, type MovieKind } from '@/lib/movie-data';
@@ -34,7 +35,7 @@ function MoviesPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <h1 className="text-2xl font-bold">{title}</h1>
+            <PageTitle title={title}/>
 
             <PaginatedMovieGallery
                 initialPage={page}

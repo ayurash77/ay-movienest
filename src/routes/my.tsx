@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Bookmark, Check } from 'lucide-react';
 
+import { PageTitle } from '@/components/AppTitle';
 import { MovieSection } from '@/components/movies/MovieSection';
 import { getMyLists } from '@/server/movies';
 
@@ -22,7 +23,7 @@ function MyListsPage() {
 
     return (
         <div className="flex flex-col gap-10">
-            <h1 className="text-2xl font-bold">Мои списки</h1>
+            <PageTitle title="Мои списки"/>
             <MovieSection
                 title="К просмотру"
                 icon={<Bookmark className="size-5 text-primary"/>}

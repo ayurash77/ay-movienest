@@ -3,7 +3,8 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageTitle } from '@/components/AppTitle';
+import { Card, CardContent } from '@/components/ui/card';
 import { MovieForm } from '@/components/movies/MovieForm';
 import { getMovie, updateMovie } from '@/server/movies';
 
@@ -27,55 +28,59 @@ export const Route = createFileRoute('/movies/$movieId_/edit')({
 function EditMoviePage() {
     const movie = Route.useLoaderData();
     const navigate = useNavigate();
+    const pageTitle = `Редактировать: ${movie.title}`;
 
     if (!movie.canEdit) {
         return (
-            <div className="flex flex-col items-center gap-4 py-20">
-                <p className="text-muted-foreground">Редактировать может только добавивший фильм</p>
-                <Button asChild variant="outline">
-                    <Link to="/movies/$movieId" params={{ movieId: movie.id }}>
-                        <ArrowLeft/>
-                        К фильму
-                    </Link>
-                </Button>
-            </div>
+            <>
+                <PageTitle title={pageTitle}/>
+                <div className="flex flex-col items-center gap-4 py-20">
+                    <p className="text-muted-foreground">Редактировать может только добавивший фильм</p>
+                    <Button asChild variant="outline">
+                        <Link to="/movies/$movieId" params={{ movieId: movie.id }}>
+                            <ArrowLeft/>
+                            К фильму
+                        </Link>
+                    </Button>
+                </div>
+            </>
         );
     }
 
     return (
-        <Card className="mx-auto w-full max-w-2xl">
-            <CardHeader>
-                <CardTitle className="text-xl">Редактировать: {movie.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <MovieForm
-                    submitLabel="Сохранить"
-                    defaults={{
-                        kind: movie.kind,
-                        title: movie.title,
-                        year: movie.year,
-                        country: movie.country,
-                        description: movie.description,
-                        posterUrl: movie.posterUrl ?? '',
-                        trailerUrl: movie.trailerUrl ?? '',
-                        director: movie.director ?? '',
-                        genres: movie.genres.join(', '),
-                        starring: movie.starring.join(', '),
-                        durationMin: movie.durationMin ?? '',
-                        seasonsCount: movie.seasonsCount ?? '',
-                        episodesPerSeason: movie.episodesPerSeason.join(', '),
-                    }}
-                    onSubmit={async (fields) => {
-                        const result = await updateMovie({ data: { ...fields, movieId: movie.id } });
-                        if (result.ok) {
-                            toast.success('Изменения сохранены');
-                            navigate({ to: '/movies/$movieId', params: { movieId: movie.id } });
-                        } else {
-                            toast.error(result.error);
-                        }
-                    }}
-                />
-            </CardContent>
-        </Card>
+        <>
+            <PageTitle title={pageTitle}/>
+            <Card className="mx-auto w-full max-w-2xl">
+                <CardContent>
+                    <MovieForm
+                        submitLabel="Сохранить"
+                        defaults={{
+                            kind: movie.kind,
+                            title: movie.title,
+                            year: movie.year,
+                            country: movie.country,
+                            description: movie.description,
+                            posterUrl: movie.posterUrl ?? '',
+                            trailerUrl: movie.trailerUrl ?? '',
+                            director: movie.director ?? '',
+                            genres: movie.genres.join(', '),
+                            starring: movie.starring.join(', '),
+                            durationMin: movie.durationMin ?? '',
+                            seasonsCount: movie.seasonsCount ?? '',
+                            episodesPerSeason: movie.episodesPerSeason.join(', '),
+                        }}
+                        onSubmit={async (fields) => {
+                            const result = await updateMovie({ data: { ...fields, movieId: movie.id } });
+                            if (result.ok) {
+                                toast.success('Изменения сохранены');
+                                navigate({ to: '/movies/$movieId', params: { movieId: movie.id } });
+                            } else {
+                                toast.error(result.error);
+                            }
+                        }}
+                    />
+                </CardContent>
+            </Card>
+        </>
     );
 }

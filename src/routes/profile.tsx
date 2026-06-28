@@ -12,9 +12,9 @@ import {
     MessageSquare,
     ShieldCheck,
     Star,
-    UserRound,
 } from 'lucide-react';
 
+import { PageTitle } from '@/components/AppTitle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -150,10 +150,7 @@ function ProfilePage() {
 
     return (
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
-            <div className="flex items-center gap-2">
-                <UserRound className="size-5 text-primary"/>
-                <h1 className="text-2xl font-bold">Профиль</h1>
-            </div>
+            <PageTitle title="Профиль"/>
 
             <Card className="overflow-hidden py-0">
                 <div className="h-24 border-b border-border bg-accent"/>

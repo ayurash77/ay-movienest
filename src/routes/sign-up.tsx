@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-r
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { PageTitle } from '@/components/AppTitle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,56 +54,59 @@ function SignUpPage() {
     };
 
     return (
-        <Card className="mx-auto mt-10 w-full max-w-sm">
-            <CardHeader>
-                <CardTitle className="text-xl">Регистрация</CardTitle>
-                <CardDescription>
-                    Создайте аккаунт по электронной почте
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="name">Имя</Label>
-                        <Input id="name" name="name" required maxLength={100} autoComplete="name"/>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" name="email" type="email" required autoComplete="email"/>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="password">Пароль (минимум 6 символов)</Label>
-                        <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            minLength={6}
-                            autoComplete="new-password"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="confirm">Повторите пароль</Label>
-                        <Input
-                            id="confirm"
-                            name="confirm"
-                            type="password"
-                            required
-                            minLength={6}
-                            autoComplete="new-password"
-                        />
-                    </div>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? 'Регистрация…' : 'Создать аккаунт'}
-                    </Button>
-                    <p className="text-center text-sm text-muted-foreground">
-                        Уже есть аккаунт?{' '}
-                        <Link to="/sign-in" className="text-primary hover:underline">
-                            Войти
-                        </Link>
-                    </p>
-                </form>
-            </CardContent>
-        </Card>
+        <>
+            <PageTitle title="Регистрация"/>
+            <Card className="mx-auto mt-10 w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle className="text-xl">Регистрация</CardTitle>
+                    <CardDescription>
+                        Создайте аккаунт по электронной почте
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="name">Имя</Label>
+                            <Input id="name" name="name" required maxLength={100} autoComplete="name"/>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input id="email" name="email" type="email" required autoComplete="email"/>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="password">Пароль (минимум 6 символов)</Label>
+                            <Input
+                                id="password"
+                                name="password"
+                                type="password"
+                                required
+                                minLength={6}
+                                autoComplete="new-password"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="confirm">Повторите пароль</Label>
+                            <Input
+                                id="confirm"
+                                name="confirm"
+                                type="password"
+                                required
+                                minLength={6}
+                                autoComplete="new-password"
+                            />
+                        </div>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Регистрация…' : 'Создать аккаунт'}
+                        </Button>
+                        <p className="text-center text-sm text-muted-foreground">
+                            Уже есть аккаунт?{' '}
+                            <Link to="/sign-in" className="text-primary hover:underline">
+                                Войти
+                            </Link>
+                        </p>
+                    </form>
+                </CardContent>
+            </Card>
+        </>
     );
 }

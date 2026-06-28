@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router';
 import { toast } from 'sonner';
 
+import { PageTitle } from '@/components/AppTitle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -73,7 +74,7 @@ function SettingsPage() {
 
     return (
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-            <h1 className="text-2xl font-bold">Настройки</h1>
+            <PageTitle title="Настройки"/>
 
             <Card>
                 <CardHeader>
