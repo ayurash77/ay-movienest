@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
 import { formatRuDateTime } from '@/lib/date-format';
+import { toServedUploadUrl } from '@/lib/upload-url';
 
 async function getDb() {
     return (await import('@/lib/db')).db;
@@ -17,6 +18,7 @@ export type ChatUser = {
     id: string;
     name: string;
     email: string;
+    avatarUrl: string | null;
 };
 
 export type ChatMessageData = {
@@ -69,6 +71,15 @@ const threadSchema = z.object({ threadId: z.string().min(1) });
 
 function directThreadKey(a: string, b: string) {
     return [ a, b ].sort().join(':');
+}
+
+function mapChatUser(user: { id: string; name: string; email: string; avatarUrl: string | null }): ChatUser {
+    return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatarUrl: toServedUploadUrl(user.avatarUrl),
+    };
 }
 
 async function canChatWith(db: Db, userId: string, friendId: string) {
@@ -153,14 +164,14 @@ async function mapThreads(db: Db, userId: string): Promise<ChatThreadSummary[]> 
             include: {
                 participants: {
                     include: {
-                        user: { select: { id: true, name: true, email: true } },
+                        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
                     },
                 },
                 messages: {
                     orderBy: { createdAt: 'desc' },
                     take: 1,
                     include: {
-                        user: { select: { id: true, name: true, email: true } },
+                        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
                     },
                 },
             },
@@ -173,7 +184,7 @@ async function mapThreads(db: Db, userId: string): Promise<ChatThreadSummary[]> 
         const latest = thread.messages[0] ?? null;
         return {
             id: thread.id,
-            friend,
+            friend: friend ? mapChatUser(friend) : null,
             updatedAt: thread.updatedAt.toISOString(),
             unreadCount: counts.get(thread.id) ?? 0,
             lastMessage: latest
@@ -194,7 +205,7 @@ async function getMessages(db: Db, threadId: string, userId: string): Promise<Ch
         orderBy: { createdAt: 'desc' },
         take: 200,
         include: {
-            user: { select: { id: true, name: true, email: true } },
+            user: { select: { id: true, name: true, email: true, avatarUrl: true } },
         },
     });
 
@@ -205,7 +216,7 @@ async function getMessages(db: Db, threadId: string, userId: string): Promise<Ch
             text: message.text,
             createdAt,
             createdAtLabel: formatRuDateTime(createdAt),
-            author: message.user,
+            author: mapChatUser(message.user),
             isMine: message.userId === userId,
         };
     });

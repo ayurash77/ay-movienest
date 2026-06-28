@@ -12,6 +12,7 @@ import {
     sendChatMessage,
     type ChatMessageData,
     type ChatThreadSummary,
+    type ChatUser,
 } from '@/server/chat';
 
 export const Route = createFileRoute('/chat')({
@@ -34,6 +35,17 @@ function notifyChatChanged() {
     window.dispatchEvent(new Event('movienest:notifications-changed'));
 }
 
+function ChatAvatar({ user, className = 'size-10' }: { user: Pick<ChatUser, 'name' | 'avatarUrl'> | null; className?: string }) {
+    const name = user?.name ?? 'Диалог';
+    return user?.avatarUrl ? (
+        <img src={user.avatarUrl} alt="" className={cn('shrink-0 rounded-full object-cover', className)}/>
+    ) : (
+        <span className={cn('grid shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground', className)}>
+            {name.trim()[0]?.toUpperCase() ?? '?'}
+        </span>
+    );
+}
+
 function ThreadButton({ thread, active }: { thread: ChatThreadSummary; active: boolean }) {
     const title = thread.friend?.name ?? 'Диалог';
     return (
@@ -45,9 +57,7 @@ function ThreadButton({ thread, active }: { thread: ChatThreadSummary; active: b
                 active && 'border-card-border-active bg-card-active',
             )}
         >
-            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                {title.trim()[0]?.toUpperCase() ?? '?'}
-            </span>
+            <ChatAvatar user={thread.friend}/>
             <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold">{title}</span>
@@ -69,7 +79,8 @@ function ThreadButton({ thread, active }: { thread: ChatThreadSummary; active: b
 
 function MessageBubble({ message }: { message: ChatMessageData }) {
     return (
-        <div className={cn('flex', message.isMine ? 'justify-end' : 'justify-start')}>
+        <div className={cn('flex items-end gap-2', message.isMine ? 'justify-end' : 'justify-start')}>
+            {!message.isMine ? <ChatAvatar user={message.author} className="size-7"/> : null}
             <div
                 className={cn(
                     'max-w-[82%] rounded-lg border px-3 py-2 shadow-sm',
@@ -176,9 +187,7 @@ function ChatPage() {
                     {activeThread ? (
                         <>
                             <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-                                <span className="grid size-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-                                    {activeThread.friend?.name.trim()[0]?.toUpperCase() ?? '?'}
-                                </span>
+                                <ChatAvatar user={activeThread.friend} className="size-9"/>
                                 <div className="min-w-0">
                                     <div className="truncate text-sm font-semibold">{activeThread.friend?.name ?? 'Диалог'}</div>
                                     <div className="truncate text-xs text-muted-foreground">{activeThread.friend?.email}</div>
