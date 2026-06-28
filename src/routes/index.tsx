@@ -3,7 +3,8 @@ import { z } from 'zod';
 
 import { MovieCatalogControls } from '@/components/movies/MovieCatalogControls';
 import { MovieGallery } from '@/components/movies/MovieGallery';
-import { movieSortDirOptions, movieSortOptions, searchMovies } from '@/server/movies';
+import { movieSortDirOptions, movieSortOptions } from '@/lib/movie-data';
+import { searchMovies } from '@/server/movies';
 
 export const Route = createFileRoute('/')({
     validateSearch: z.object({

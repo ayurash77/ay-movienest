@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { MovieCardData } from '@/server/movies';
+import type { MovieCardData } from '@/lib/movie-data';
 import { MovieCard } from './MovieCard';
 
 type MovieSectionProps = {

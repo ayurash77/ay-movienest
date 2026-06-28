@@ -1,8 +1,13 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { db } from '@/lib/db';
-import { getAuthUser } from './session';
+async function getDb() {
+    return (await import('@/lib/db')).db;
+}
+
+async function getAuthUser() {
+    return (await import('./session')).getAuthUser();
+}
 
 export type MovieComment = {
     id: string;
@@ -15,6 +20,7 @@ export type MovieComment = {
 export const getComments = createServerFn({ method: 'GET' })
     .validator(z.object({ movieId: z.string().min(1) }))
     .handler(async ({ data }): Promise<MovieComment[]> => {
+        const db = await getDb();
         const user = await getAuthUser();
         const comments = await db.comment.findMany({
             where: { movieId: data.movieId },
@@ -38,6 +44,7 @@ export const addComment = createServerFn({ method: 'POST' })
         text: z.string().trim().min(1).max(2000),
     }))
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };
@@ -58,6 +65,7 @@ export const addComment = createServerFn({ method: 'POST' })
 export const deleteComment = createServerFn({ method: 'POST' })
     .validator(z.object({ commentId: z.string().min(1) }))
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };

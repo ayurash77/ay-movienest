@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { MovieFormFields } from '@/server/movies';
+import type { MovieFormFields } from '@/lib/movie-data';
 import { uploadPoster } from '@/server/uploads';
 
 type MovieFormProps = {

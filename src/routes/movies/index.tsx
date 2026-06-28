@@ -3,12 +3,9 @@ import { z } from 'zod';
 
 import { MovieCatalogControls } from '@/components/movies/MovieCatalogControls';
 import { MovieGallery } from '@/components/movies/MovieGallery';
+import { movieKindOptions, movieSortDirOptions, movieSortOptions, type MovieKind } from '@/lib/movie-data';
 import {
-    movieKindOptions,
-    movieSortDirOptions,
-    movieSortOptions,
     searchMovies,
-    type MovieKind,
 } from '@/server/movies';
 
 const KIND_TITLES: Record<MovieKind, string> = {

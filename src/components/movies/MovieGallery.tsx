@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { MovieCardData } from '@/server/movies';
+import type { MovieCardData } from '@/lib/movie-data';
 
 type MovieGalleryProps = {
     movies: MovieCardData[];

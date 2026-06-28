@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { MovieForm } from '@/components/movies/MovieForm';
 import { lookupMovie } from '@/server/movie-lookup';
-import { createMovie, movieKindOptions, type MovieFormFields } from '@/server/movies';
+import { createMovie } from '@/server/movies';
+import { movieKindOptions, type MovieFormFields } from '@/lib/movie-data';
 
 export const Route = createFileRoute('/movies/new')({
     validateSearch: z.object({

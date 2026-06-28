@@ -12,7 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import type { MovieSort, MovieSortDir } from '@/server/movies';
+import type { MovieSort, MovieSortDir } from '@/lib/movie-data';
 
 type MovieCatalogControlsProps = {
     q?: string;

@@ -1,14 +1,14 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { db } from '@/lib/db';
-import { hashPassword, verifyPassword } from './password';
-import { createSession, destroySession, getAuthUser } from './session';
-
 export type { SessionUser } from './session';
 
+async function getDb() {
+    return (await import('@/lib/db')).db;
+}
+
 export const getSessionUser = createServerFn({ method: 'GET' }).handler(
-    async () => getAuthUser(),
+    async () => (await import('./session')).getAuthUser(),
 );
 
 const signUpSchema = z.object({
@@ -20,6 +20,9 @@ const signUpSchema = z.object({
 export const signUp = createServerFn({ method: 'POST' })
     .validator(signUpSchema)
     .handler(async ({ data }) => {
+        const db = await getDb();
+        const { hashPassword } = await import('./password');
+        const { createSession } = await import('./session');
         const existing = await db.user.findUnique({ where: { email: data.email } });
         if (existing) {
             return { ok: false as const, error: 'Пользователь с таким email уже зарегистрирован' };
@@ -46,6 +49,9 @@ const signInSchema = z.object({
 export const signIn = createServerFn({ method: 'POST' })
     .validator(signInSchema)
     .handler(async ({ data }) => {
+        const db = await getDb();
+        const { verifyPassword } = await import('./password');
+        const { createSession } = await import('./session');
         const user = await db.user.findUnique({ where: { email: data.email } });
         if (!user || !verifyPassword(data.password, user.passwordHash)) {
             return { ok: false as const, error: 'Неверный email или пароль' };
@@ -57,6 +63,7 @@ export const signIn = createServerFn({ method: 'POST' })
     });
 
 export const signOut = createServerFn({ method: 'POST' }).handler(async () => {
+    const { destroySession } = await import('./session');
     await destroySession();
     return { ok: true as const };
 });

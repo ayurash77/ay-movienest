@@ -1,36 +1,28 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { db } from '@/lib/db';
-import { getAuthUser } from './session';
+import {
+    movieKindOptions,
+    movieSortDirOptions,
+    movieSortOptions,
+    type HomeMovies,
+    type MovieCardData,
+    type MovieDetails,
+    type MovieSort,
+    type MovieSortDir,
+} from '@/lib/movie-data';
 
-export type MovieCardData = {
-    id: string;
-    kind: MovieKind;
-    title: string;
-    year: number;
-    country: string;
-    posterUrl: string | null;
-    seasonsCount: number | null;
-    episodesPerSeason: number[];
-    avgRating: number;
-    ratingCount: number;
-    commentCount: number;
-};
+async function getDb() {
+    return (await import('@/lib/db')).db;
+}
 
-export type HomeMovies = {
-    latest: MovieCardData[];
-};
-
-export const movieSortOptions = [ 'new', 'rating', 'year', 'title' ] as const;
-export type MovieSort = (typeof movieSortOptions)[number];
-export const movieSortDirOptions = [ 'asc', 'desc' ] as const;
-export type MovieSortDir = (typeof movieSortDirOptions)[number];
-export const movieKindOptions = [ 'MOVIE', 'SERIES', 'CARTOON' ] as const;
-export type MovieKind = (typeof movieKindOptions)[number];
+async function getAuthUser() {
+    return (await import('./session')).getAuthUser();
+}
 
 export async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> {
     if (ids.length === 0) return new Map();
+    const db = await getDb();
 
     const [ movies, aggregates, commentCounts ] = await Promise.all([
         db.movie.findMany({ where: { id: { in: ids } } }),
@@ -75,6 +67,7 @@ export async function toMovieCards(ids: string[]): Promise<Map<string, MovieCard
 
 export const getHomeMovies = createServerFn({ method: 'GET' }).handler(
     async (): Promise<HomeMovies> => {
+        const db = await getDb();
         const latestMovies = await db.movie.findMany({
             orderBy: { createdAt: 'desc' },
             take: 200,
@@ -103,6 +96,7 @@ const searchMoviesSchema = z.object({
 export const searchMovies = createServerFn({ method: 'GET' })
     .validator(searchMoviesSchema)
     .handler(async ({ data }): Promise<MovieCardData[]> => {
+        const db = await getDb();
         const q = data.q;
         const movies = await db.movie.findMany({
             where: q
@@ -147,33 +141,10 @@ export const searchMovies = createServerFn({ method: 'GET' })
         return list;
     });
 
-export type MovieDetails = {
-    id: string;
-    kind: MovieKind;
-    title: string;
-    year: number;
-    country: string;
-    description: string;
-    posterUrl: string | null;
-    trailerUrl: string | null;
-    director: string | null;
-    genres: string[];
-    starring: string[];
-    durationMin: number | null;
-    seasonsCount: number | null;
-    episodesPerSeason: number[];
-    createdAt: string;
-    addedBy: string | null;
-    avgRating: number;
-    ratingCount: number;
-    myRating: number | null;
-    myWatchStatus: 'WATCHLIST' | 'WATCHED' | null;
-    canEdit: boolean;
-};
-
 export const getMovie = createServerFn({ method: 'GET' })
     .validator(z.object({ id: z.string().min(1) }))
     .handler(async ({ data }): Promise<MovieDetails | null> => {
+        const db = await getDb();
         const user = await getAuthUser();
 
         const movie = await db.movie.findUnique({
@@ -248,22 +219,6 @@ const movieFieldsSchema = z.object({
     episodesPerSeason: z.string().trim().max(500).optional(),
 });
 
-export type MovieFormFields = {
-    kind?: MovieKind;
-    title: string;
-    year: number;
-    country: string;
-    description: string;
-    posterUrl?: string;
-    trailerUrl?: string;
-    director?: string;
-    genres?: string;
-    starring?: string;
-    durationMin?: number | '';
-    seasonsCount?: number | '';
-    episodesPerSeason?: string;
-};
-
 function splitList(value: string | undefined) {
     return value ? value.split(',').map((item) => item.trim()).filter(Boolean) : [];
 }
@@ -293,6 +248,7 @@ function toMovieData(data: z.output<typeof movieFieldsSchema>) {
 export const createMovie = createServerFn({ method: 'POST' })
     .validator(movieFieldsSchema)
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };
@@ -308,6 +264,7 @@ export const createMovie = createServerFn({ method: 'POST' })
 export const updateMovie = createServerFn({ method: 'POST' })
     .validator(movieFieldsSchema.extend({ movieId: z.string().min(1) }))
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };
@@ -332,6 +289,7 @@ export const updateMovie = createServerFn({ method: 'POST' })
 
 export const getMyLists = createServerFn({ method: 'GET' }).handler(
     async (): Promise<{ watchlist: MovieCardData[]; watched: MovieCardData[] } | null> => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) return null;
 
@@ -355,6 +313,7 @@ export const getMyLists = createServerFn({ method: 'GET' }).handler(
 export const rateMovie = createServerFn({ method: 'POST' })
     .validator(z.object({ movieId: z.string().min(1), value: z.number().int().min(1).max(5) }))
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };

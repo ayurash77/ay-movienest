@@ -1,8 +1,7 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { getAuthUser } from './session';
-import { movieKindOptions, type MovieKind } from './movies';
+import { movieKindOptions, type MovieKind } from '@/lib/movie-data';
 
 const lookupResultSchema = z.object({
     found: z.boolean(),
@@ -192,6 +191,7 @@ async function buildMovie(lang: 'ru' | 'en', page: WikiPage): Promise<MovieLooku
 export const lookupMovie = createServerFn({ method: 'POST' })
     .validator(z.object({ title: z.string().trim().min(2).max(200) }))
     .handler(async ({ data }) => {
+        const { getAuthUser } = await import('./session');
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };

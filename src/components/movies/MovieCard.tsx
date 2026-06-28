@@ -5,7 +5,7 @@ import { IoFilm } from 'react-icons/io5';
 import { TbDeviceTvOldFilled } from 'react-icons/tb';
 import { FaImage } from 'react-icons/fa6';
 
-import type { MovieCardData, MovieKind } from '@/server/movies';
+import type { MovieCardData, MovieKind } from '@/lib/movie-data';
 import { RatingStars } from './RatingStars';
 import { MoviePoster } from './MoviePoster';
 import { cn, formatRating } from '@/lib/utils';

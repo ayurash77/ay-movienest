@@ -2,18 +2,10 @@ import { randomBytes } from 'node:crypto';
 import { deleteCookie, getCookie, setCookie } from '@tanstack/react-start/server';
 
 import { db } from '@/lib/db';
+import { resolveRole, type UserRole } from '@/lib/user-roles';
 
 const SESSION_COOKIE = 'movienest_session';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
-export type UserRole = 'USER' | 'ADMIN';
-
-export const BOOTSTRAP_ADMIN_EMAILS = [ 'ayurash@me.com' ];
-
-export function resolveRole(email: string, storedRole: string | null | undefined): UserRole {
-    if (BOOTSTRAP_ADMIN_EMAILS.includes(email.toLowerCase())) return 'ADMIN';
-    return storedRole === 'ADMIN' ? 'ADMIN' : 'USER';
-}
 
 export type SessionUser = {
     id: string;

@@ -1,9 +1,13 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { db } from '@/lib/db';
-import { hashPassword, verifyPassword } from './password';
-import { getAuthUser } from './session';
+async function getDb() {
+    return (await import('@/lib/db')).db;
+}
+
+async function getAuthUser() {
+    return (await import('./session')).getAuthUser();
+}
 
 export type MyProfile = {
     name: string;
@@ -18,6 +22,7 @@ export type MyProfile = {
 
 export const getMyProfile = createServerFn({ method: 'GET' }).handler(
     async (): Promise<MyProfile | null> => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) return null;
 
@@ -47,6 +52,7 @@ export const getMyProfile = createServerFn({ method: 'GET' }).handler(
 export const updateName = createServerFn({ method: 'POST' })
     .validator(z.object({ name: z.string().trim().min(1).max(100) }))
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };
@@ -62,6 +68,8 @@ export const changePassword = createServerFn({ method: 'POST' })
         next: z.string().min(6).max(200),
     }))
     .handler(async ({ data }) => {
+        const db = await getDb();
+        const { hashPassword, verifyPassword } = await import('./password');
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };

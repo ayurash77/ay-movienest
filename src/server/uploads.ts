@@ -1,8 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
 
-import { getAuthUser } from './session';
-import { storeUpload } from './storage';
-
 const MAX_POSTER_BYTES = 5 * 1024 * 1024;
 
 const EXT_BY_MIME: Record<string, string> = {
@@ -19,6 +16,7 @@ export const uploadPoster = createServerFn({ method: 'POST' })
         return data;
     })
     .handler(async ({ data }) => {
+        const { getAuthUser } = await import('./session');
         const user = await getAuthUser();
         if (!user) {
             return { ok: false as const, error: 'Требуется авторизация' };
@@ -38,6 +36,7 @@ export const uploadPoster = createServerFn({ method: 'POST' })
         }
 
         try {
+            const { storeUpload } = await import('./storage');
             const { url } = await storeUpload(
                 'posters',
                 ext,

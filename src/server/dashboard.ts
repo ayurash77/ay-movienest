@@ -1,9 +1,20 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import { db } from '@/lib/db';
-import { toMovieCards, type MovieCardData } from '@/server/movies';
-import { BOOTSTRAP_ADMIN_EMAILS, getAuthUser, resolveRole, type UserRole } from './session';
+import { type MovieCardData } from '@/lib/movie-data';
+import { BOOTSTRAP_ADMIN_EMAILS, resolveRole, type UserRole } from '@/lib/user-roles';
+
+async function getDb() {
+    return (await import('@/lib/db')).db;
+}
+
+async function getAuthUser() {
+    return (await import('./session')).getAuthUser();
+}
+
+async function toMovieCards(ids: string[]) {
+    return (await import('./movies')).toMovieCards(ids);
+}
 
 export type DashboardUserCard = {
     id: string;
@@ -63,6 +74,7 @@ function mapDashboardUser(
 }
 
 async function listAdminUsers(): Promise<AdminUserCard[]> {
+    const db = await getDb();
     const users = await db.user.findMany({
         orderBy: { createdAt: 'asc' },
         select: {
@@ -91,6 +103,7 @@ async function listAdminUsers(): Promise<AdminUserCard[]> {
 export const setUserRole = createServerFn({ method: 'POST' })
     .validator(z.object({ userId: z.string().min(1), role: z.enum([ 'USER', 'ADMIN' ]) }))
     .handler(async ({ data }) => {
+        const db = await getDb();
         const admin = await getAuthUser();
         if (!admin || admin.role !== 'ADMIN') return { ok: false as const, error: 'Доступ только для администраторов' };
         if (admin.id === data.userId && data.role !== 'ADMIN') {
@@ -108,6 +121,7 @@ export const setUserRole = createServerFn({ method: 'POST' })
     });
 
 export const getDashboardData = createServerFn({ method: 'GET' }).handler(async (): Promise<DashboardData | null> => {
+    const db = await getDb();
     const user = await getAuthUser();
     if (!user) return null;
 
@@ -154,6 +168,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(async 
 export const searchUsersForFriends = createServerFn({ method: 'GET' })
     .validator(userSearchSchema)
     .handler(async ({ data }): Promise<DashboardUserCard[]> => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) return [];
 
@@ -193,6 +208,7 @@ export const searchUsersForFriends = createServerFn({ method: 'GET' })
 export const addFriend = createServerFn({ method: 'POST' })
     .validator(friendSchema)
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) return { ok: false as const, error: 'Нужен вход' };
         if (data.friendId === user.id) return { ok: false as const, error: 'Нельзя добавить себя' };
@@ -213,6 +229,7 @@ export const addFriend = createServerFn({ method: 'POST' })
 export const removeFriend = createServerFn({ method: 'POST' })
     .validator(friendSchema)
     .handler(async ({ data }) => {
+        const db = await getDb();
         const user = await getAuthUser();
         if (!user) return { ok: false as const, error: 'Нужен вход' };
 
