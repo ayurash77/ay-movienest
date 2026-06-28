@@ -8,10 +8,13 @@ import {
     type HomeMovies,
     type MovieCardData,
     type MovieDetails,
+    type MovieSearchPage,
     type MovieSort,
     type MovieSortDir,
 } from '@/lib/movie-data';
 import { toServedUploadUrl } from '@/lib/upload-url';
+
+const MOVIE_PAGE_SIZE = 48;
 
 async function getDb() {
     return (await import('@/lib/db')).db;
@@ -92,54 +95,134 @@ const searchMoviesSchema = z.object({
     sort: z.enum(movieSortOptions).optional(),
     dir: z.enum(movieSortDirOptions).optional(),
     kind: z.enum(movieKindOptions).optional(),
+    cursor: z.coerce.number().int().min(0).optional(),
 });
+
+type SearchMoviesData = z.output<typeof searchMoviesSchema>;
+type Db = Awaited<ReturnType<typeof getDb>>;
+
+function searchWhere(data: SearchMoviesData) {
+    const q = data.q;
+    return {
+        ...(data.kind ? { kind: data.kind } : {}),
+        ...(q
+            ? {
+                OR: [
+                    { title: { contains: q, mode: 'insensitive' as const } },
+                    { director: { contains: q, mode: 'insensitive' as const } },
+                    { country: { contains: q, mode: 'insensitive' as const } },
+                    { genres: { has: q.toLowerCase() } },
+                ],
+            }
+            : {}),
+    };
+}
+
+function searchSqlWhere(data: SearchMoviesData) {
+    const params: Array<string | number> = [];
+    const conditions: string[] = [];
+    const q = data.q;
+
+    if (data.kind) {
+        params.push(data.kind);
+        conditions.push(`m."kind"::text = $${params.length}`);
+    }
+
+    if (q) {
+        params.push(`%${q}%`);
+        const searchParam = `$${params.length}`;
+        params.push(q.toLowerCase());
+        const genreParam = `$${params.length}`;
+        conditions.push(`(
+            m."title" ILIKE ${searchParam}
+            OR m."director" ILIKE ${searchParam}
+            OR m."country" ILIKE ${searchParam}
+            OR m."genres" @> ARRAY[${genreParam}]::text[]
+        )`);
+    }
+
+    return {
+        params,
+        sql: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '',
+    };
+}
+
+async function ratingSortedMovieIds(db: Db, data: SearchMoviesData, offset: number) {
+    const dir = data.dir ?? 'desc';
+    const orderDir = dir === 'asc' ? 'ASC' : 'DESC';
+    const { params, sql } = searchSqlWhere(data);
+    params.push(MOVIE_PAGE_SIZE);
+    const limitParam = `$${params.length}`;
+    params.push(offset);
+    const offsetParam = `$${params.length}`;
+
+    // Prisma cannot order Movie by average Rating value, so only this id page uses SQL.
+    const rows = await db.$queryRawUnsafe<{ id: string }[]>(
+        `
+            SELECT m."id"
+            FROM "Movie" m
+            LEFT JOIN "Rating" r ON r."movieId" = m."id"
+            ${sql}
+            GROUP BY m."id"
+            ORDER BY
+                COALESCE(AVG(r."value"), 0) ${orderDir},
+                COUNT(r."id") ${orderDir},
+                m."createdAt" DESC,
+                m."id" DESC
+            LIMIT ${limitParam}
+            OFFSET ${offsetParam}
+        `,
+        ...params,
+    );
+    return rows.map((row) => row.id);
+}
 
 export const searchMovies = createServerFn({ method: 'GET' })
     .validator(searchMoviesSchema)
-    .handler(async ({ data }): Promise<MovieCardData[]> => {
+    .handler(async ({ data }): Promise<MovieSearchPage> => {
         const db = await getDb();
-        const q = data.q;
-        const movies = await db.movie.findMany({
-            where: q
-                ? {
-                    AND: [
-                        data.kind ? { kind: data.kind } : {},
-                        {
-                            OR: [
-                                { title: { contains: q, mode: 'insensitive' } },
-                                { director: { contains: q, mode: 'insensitive' } },
-                                { country: { contains: q, mode: 'insensitive' } },
-                                { genres: { has: q.toLowerCase() } },
-                            ],
-                        },
-                    ],
-                }
-                : data.kind ? { kind: data.kind } : {},
-            orderBy: { createdAt: 'desc' },
-            take: 200,
-            select: { id: true },
-        });
-
-        const cards = await toMovieCards(movies.map((m) => m.id));
-        // toMovieCards loses findMany order; movies array keeps createdAt desc
-        const list = movies
-            .map((m) => cards.get(m.id))
-            .filter((c): c is MovieCardData => Boolean(c));
-
+        const offset = data.cursor ?? 0;
+        const where = searchWhere(data);
         const sort: MovieSort = data.sort ?? 'new';
         const dir: MovieSortDir = data.dir ?? 'desc';
-        const factor = dir === 'asc' ? -1 : 1;
+        const totalPromise = db.movie.count({ where });
+        let ids: string[];
+
         if (sort === 'rating') {
-            list.sort((a, b) => factor * (b.avgRating - a.avgRating || b.ratingCount - a.ratingCount));
-        } else if (sort === 'year') {
-            list.sort((a, b) => factor * (b.year - a.year));
-        } else if (sort === 'title') {
-            list.sort((a, b) => factor * b.title.localeCompare(a.title, 'ru'));
-        } else if (dir === 'asc') {
-            list.reverse();
+            ids = await ratingSortedMovieIds(db, data, offset);
+        } else {
+            const orderBy = sort === 'year'
+                ? [ { year: dir }, { createdAt: 'desc' as const }, { id: 'desc' as const } ]
+                : sort === 'title'
+                    ? [ { title: dir }, { createdAt: 'desc' as const }, { id: 'desc' as const } ]
+                    : [ { createdAt: dir }, { id: dir } ];
+
+            const movies = await db.movie.findMany({
+                where,
+                orderBy,
+                skip: offset,
+                take: MOVIE_PAGE_SIZE,
+                select: { id: true },
+            });
+            ids = movies.map((movie) => movie.id);
         }
 
-        return list;
+        const [ total, cards ] = await Promise.all([
+            totalPromise,
+            toMovieCards(ids),
+        ]);
+
+        // toMovieCards loses query order; ids keep requested sorting.
+        const items = ids
+            .map((id) => cards.get(id))
+            .filter((c): c is MovieCardData => Boolean(c));
+        const nextOffset = offset + items.length;
+
+        return {
+            items,
+            nextCursor: nextOffset < total ? nextOffset : null,
+            total,
+        };
     });
 
 export const getMovie = createServerFn({ method: 'GET' })

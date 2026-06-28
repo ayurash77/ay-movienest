@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import { MovieCatalogControls } from '@/components/movies/MovieCatalogControls';
-import { MovieGallery } from '@/components/movies/MovieGallery';
+import { PaginatedMovieGallery } from '@/components/movies/PaginatedMovieGallery';
 import { movieSortDirOptions, movieSortOptions } from '@/lib/movie-data';
 import { searchMovies } from '@/server/movies';
 
@@ -18,15 +18,16 @@ export const Route = createFileRoute('/')({
 });
 
 function HomePage() {
-    const movies = Route.useLoaderData();
+    const page = Route.useLoaderData();
     const { q, sort, dir } = Route.useSearch();
     const navigate = useNavigate({ from: Route.fullPath });
 
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-bold">Фильмотека</h1>
-            <MovieGallery
-                movies={movies}
+            <PaginatedMovieGallery
+                initialPage={page}
+                query={{ q, sort, dir }}
                 emptyText={`Ничего не найдено${q ? ` по запросу «${q}»` : ''}`}
                 controlsStart={
                     <MovieCatalogControls

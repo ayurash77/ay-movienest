@@ -21,6 +21,19 @@ export type MovieCardData = {
     commentCount: number;
 };
 
+export type MovieSearchQuery = {
+    q?: string;
+    sort?: MovieSort;
+    dir?: MovieSortDir;
+    kind?: MovieKind;
+};
+
+export type MovieSearchPage = {
+    items: MovieCardData[];
+    nextCursor: number | null;
+    total: number;
+};
+
 export type HomeMovies = {
     latest: MovieCardData[];
 };
