@@ -3,6 +3,8 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import {
+    Bell,
+    BellOff,
     Film,
     Loader2,
     Plus,
@@ -27,10 +29,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import {
     addFriend,
+    followUser,
     getDashboardData,
     removeFriend,
     searchUsersForFriends,
     setUserRole,
+    unfollowUser,
     type AdminUserCard,
     type DashboardFriendCard,
     type DashboardUserCard,
@@ -76,10 +80,11 @@ function DashboardPage() {
     const router = useRouter();
     const friends = data?.friends ?? [];
     const myMovies = data?.myMovies ?? [];
-    const users = data?.users ?? null;
-    const isAdmin = users !== null;
+    const users = data?.users ?? [];
+    const canManageUsers = data?.canManageUsers ?? false;
     const [ activeTab, setActiveTab ] = useState<DashboardTab>('movies');
     const [ busyUserId, setBusyUserId ] = useState<string | null>(null);
+    const [ followingUserId, setFollowingUserId ] = useState<string | null>(null);
     const [ removingFriendId, setRemovingFriendId ] = useState<string | null>(null);
 
     const handleSetRole = async (user: AdminUserCard, role: 'USER' | 'ADMIN') => {
@@ -117,6 +122,26 @@ function DashboardPage() {
         }
     };
 
+    const handleToggleFollow = async (user: AdminUserCard) => {
+        if (followingUserId || user.isSelf) return;
+        setFollowingUserId(user.id);
+        try {
+            const result = user.isFollowing
+                ? await unfollowUser({ data: { userId: user.id } })
+                : await followUser({ data: { userId: user.id } });
+            if (result.ok) {
+                toast.success(user.isFollowing ? 'Подписка отключена' : 'Подписка включена');
+                await router.invalidate();
+            } else {
+                toast.error(result.error);
+            }
+        } catch {
+            toast.error('Не удалось обновить подписку');
+        } finally {
+            setFollowingUserId(null);
+        }
+    };
+
     return (
         <Tabs
             value={activeTab}
@@ -127,7 +152,7 @@ function DashboardPage() {
                 <TabsList className="max-w-full overflow-x-auto">
                     <TabsTrigger value="movies">Мои фильмы</TabsTrigger>
                     <TabsTrigger value="friends">Друзья</TabsTrigger>
-                    {isAdmin ? <TabsTrigger value="users">Пользователи</TabsTrigger> : null}
+                    <TabsTrigger value="users">Пользователи</TabsTrigger>
                 </TabsList>
                 {activeTab === 'movies' ? (
                     <AddMovieDropdown/>
@@ -178,33 +203,34 @@ function DashboardPage() {
                 </div>
             </TabsContent>
 
-            {isAdmin ? (
-                <TabsContent value="users">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2">
-                            <Users className="size-5 text-primary"/>
-                            <h1 className="text-xl font-bold tracking-tight">Пользователи</h1>
-                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
-                                {users.length}
-                            </span>
-                        </div>
-                        {users.length === 0 ? (
-                            <p className="py-16 text-center text-sm text-muted-foreground">Пользователей пока нет.</p>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                {users.map((user) => (
-                                    <AdminUserCardView
-                                        key={user.id}
-                                        user={user}
-                                        busy={busyUserId === user.id}
-                                        onSetRole={handleSetRole}
-                                    />
-                                ))}
-                            </div>
-                        )}
+            <TabsContent value="users">
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
+                        <Users className="size-5 text-primary"/>
+                        <h1 className="text-xl font-bold tracking-tight">Пользователи</h1>
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+                            {users.length}
+                        </span>
                     </div>
-                </TabsContent>
-            ) : null}
+                    {users.length === 0 ? (
+                        <p className="py-16 text-center text-sm text-muted-foreground">Пользователей пока нет.</p>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            {users.map((user) => (
+                                <AdminUserCardView
+                                    key={user.id}
+                                    user={user}
+                                    roleBusy={busyUserId === user.id}
+                                    followBusy={followingUserId === user.id}
+                                    canManageRoles={canManageUsers}
+                                    onSetRole={handleSetRole}
+                                    onToggleFollow={handleToggleFollow}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </TabsContent>
         </Tabs>
     );
 }
@@ -416,13 +442,16 @@ function AddFriendDialog({ onAdded }: { onAdded: () => void | Promise<void> }) {
     );
 }
 
-function AdminUserCardView({ user, busy, onSetRole }: {
+function AdminUserCardView({ user, roleBusy, followBusy, canManageRoles, onSetRole, onToggleFollow }: {
     user: AdminUserCard;
-    busy: boolean;
+    roleBusy: boolean;
+    followBusy: boolean;
+    canManageRoles: boolean;
     onSetRole: (user: AdminUserCard, role: 'USER' | 'ADMIN') => void;
+    onToggleFollow: (user: AdminUserCard) => void;
 }) {
     const navigate = useNavigate();
-    const canChange = !user.isBootstrapAdmin;
+    const canChange = canManageRoles && !user.isBootstrapAdmin;
     const goToProfile = () => navigate({ to: '/dashboard/$userId', params: { userId: user.id } });
     const shouldIgnoreCardClick = (target: EventTarget | null) =>
         target instanceof HTMLElement && Boolean(target.closest('button,a'));
@@ -454,23 +483,40 @@ function AdminUserCardView({ user, busy, onSetRole }: {
                     <p className="mt-1 text-[11px] text-muted-foreground/80">
                         Фильмов: {user.movieCount} · Оценок: {user.ratingCount} · Комментариев: {user.commentCount}
                     </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                        {user.isFriend ? 'В друзьях' : 'Не в друзьях'} · {user.isFollowing ? 'Вы подписаны' : 'Без подписки'}
+                    </p>
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-2">
-                <span className="text-[11px] text-muted-foreground">
-                    {user.isBootstrapAdmin ? 'Системный администратор' : 'Роль'}
-                </span>
-                <Button
-                    type="button"
-                    variant={user.role === 'ADMIN' ? 'default' : 'outline'}
-                    size="sm"
-                    className="h-7"
-                    disabled={!canChange || busy}
-                    onClick={() => onSetRole(user, user.role === 'ADMIN' ? 'USER' : 'ADMIN')}
-                >
-                    {busy ? <Loader2 className="animate-spin"/> : <ShieldCheck/>}
-                    {user.role === 'ADMIN' ? 'Сделать user' : 'Сделать admin'}
-                </Button>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-2">
+                {!user.isSelf ? (
+                    <Button
+                        type="button"
+                        variant={user.isFollowing ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7"
+                        disabled={followBusy}
+                        onClick={() => onToggleFollow(user)}
+                    >
+                        {followBusy ? <Loader2 className="animate-spin"/> : user.isFollowing ? <BellOff/> : <Bell/>}
+                        {user.isFollowing ? 'Отписаться' : 'Подписаться'}
+                    </Button>
+                ) : (
+                    <span className="text-[11px] text-muted-foreground">Это вы</span>
+                )}
+                {canManageRoles ? (
+                    <Button
+                        type="button"
+                        variant={user.role === 'ADMIN' ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-7"
+                        disabled={!canChange || roleBusy}
+                        onClick={() => onSetRole(user, user.role === 'ADMIN' ? 'USER' : 'ADMIN')}
+                    >
+                        {roleBusy ? <Loader2 className="animate-spin"/> : <ShieldCheck/>}
+                        {user.role === 'ADMIN' ? 'Сделать user' : 'Сделать admin'}
+                    </Button>
+                ) : null}
             </div>
         </div>
     );

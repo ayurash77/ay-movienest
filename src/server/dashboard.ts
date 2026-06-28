@@ -24,6 +24,7 @@ export type DashboardUserCard = {
     movieCount: number;
     ratingCount: number;
     isFriend: boolean;
+    isFollowing: boolean;
 };
 
 export type DashboardFriendCard = DashboardUserCard & {
@@ -34,7 +35,8 @@ export type DashboardFriendCard = DashboardUserCard & {
 export type DashboardData = {
     friends: DashboardFriendCard[];
     myMovies: MovieCardData[];
-    users: AdminUserCard[] | null;
+    users: AdminUserCard[];
+    canManageUsers: boolean;
 };
 
 export type DashboardProfileData = {
@@ -50,7 +52,10 @@ export type DashboardProfileData = {
     watchlistCount: number;
     watchedCount: number;
     friendCount: number;
+    followerCount: number;
+    followingCount: number;
     isFriend: boolean;
+    isFollowing: boolean;
     isSelf: boolean;
     canManage: boolean;
     movies: MovieCardData[];
@@ -66,11 +71,15 @@ export type AdminUserCard = {
     movieCount: number;
     ratingCount: number;
     commentCount: number;
+    isFriend: boolean;
+    isFollowing: boolean;
+    isSelf: boolean;
 };
 
 const userSearchSchema = z.object({ q: z.string().trim().max(100).optional() });
 const friendSchema = z.object({ friendId: z.string().min(1) });
 const userIdSchema = z.object({ userId: z.string().min(1) });
+const followSchema = z.object({ userId: z.string().min(1) });
 
 function mapDashboardUser(
     user: {
@@ -81,6 +90,7 @@ function mapDashboardUser(
         _count: { movies: number; ratings: number };
     },
     friendIds: Set<string>,
+    followingIds: Set<string>,
 ): DashboardUserCard {
     return {
         id: user.id,
@@ -90,10 +100,15 @@ function mapDashboardUser(
         movieCount: user._count.movies,
         ratingCount: user._count.ratings,
         isFriend: friendIds.has(user.id),
+        isFollowing: followingIds.has(user.id),
     };
 }
 
-async function listAdminUsers(): Promise<AdminUserCard[]> {
+async function listDashboardUsers(
+    viewerId: string,
+    friendIds: Set<string>,
+    followingIds: Set<string>,
+): Promise<AdminUserCard[]> {
     const db = await getDb();
     const users = await db.user.findMany({
         orderBy: { createdAt: 'asc' },
@@ -117,6 +132,9 @@ async function listAdminUsers(): Promise<AdminUserCard[]> {
         movieCount: u._count.movies,
         ratingCount: u._count.ratings,
         commentCount: u._count.comments,
+        isFriend: friendIds.has(u.id),
+        isFollowing: followingIds.has(u.id),
+        isSelf: u.id === viewerId,
     }));
 }
 
@@ -160,7 +178,7 @@ export const getUserProfile = createServerFn({ method: 'GET' })
         });
         if (!user) return { ok: false as const, error: 'Пользователь не найден' };
 
-        const [ watchlistCount, watchedCount, friendship, movieIds ] = await Promise.all([
+        const [ watchlistCount, watchedCount, friendship, following, followerCount, followingCount, movieIds ] = await Promise.all([
             db.watchEntry.count({ where: { userId: user.id, status: 'WATCHLIST' } }),
             db.watchEntry.count({ where: { userId: user.id, status: 'WATCHED' } }),
             viewer.id === user.id
@@ -169,6 +187,14 @@ export const getUserProfile = createServerFn({ method: 'GET' })
                     where: { userId_friendId: { userId: viewer.id, friendId: user.id } },
                     select: { id: true },
                 }),
+            viewer.id === user.id
+                ? Promise.resolve(null)
+                : db.userFollow.findUnique({
+                    where: { followerId_followingId: { followerId: viewer.id, followingId: user.id } },
+                    select: { id: true },
+                }),
+            db.userFollow.count({ where: { followingId: user.id } }),
+            db.userFollow.count({ where: { followerId: user.id } }),
             db.movie.findMany({
                 where: { createdById: user.id },
                 orderBy: { createdAt: 'desc' },
@@ -192,7 +218,10 @@ export const getUserProfile = createServerFn({ method: 'GET' })
                 watchlistCount,
                 watchedCount,
                 friendCount: user._count.friends,
+                followerCount,
+                followingCount,
                 isFriend: Boolean(friendship),
+                isFollowing: Boolean(following),
                 isSelf: viewer.id === user.id,
                 canManage: viewer.role === 'ADMIN',
                 movies: movieIds
@@ -207,7 +236,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(async 
     const user = await getAuthUser();
     if (!user) return null;
 
-    const [ friends, myMovieIds, users ] = await Promise.all([
+    const [ friends, myMovieIds, following ] = await Promise.all([
         db.userFriend.findMany({
             where: { userId: user.id },
             orderBy: { createdAt: 'desc' },
@@ -228,15 +257,20 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(async 
             orderBy: { createdAt: 'desc' },
             select: { id: true },
         }),
-        user.role === 'ADMIN' ? listAdminUsers() : Promise.resolve(null),
+        db.userFollow.findMany({
+            where: { followerId: user.id },
+            select: { followingId: true },
+        }),
     ]);
 
     const friendIds = new Set(friends.map((item) => item.friendId));
+    const followingIds = new Set(following.map((item) => item.followingId));
     const myMovieCards = await toMovieCards(myMovieIds.map((movie) => movie.id));
+    const users = await listDashboardUsers(user.id, friendIds, followingIds);
 
     return {
         friends: friends.map((item) => ({
-            ...mapDashboardUser(item.friend, friendIds),
+            ...mapDashboardUser(item.friend, friendIds, followingIds),
             friendshipId: item.id,
             addedAt: item.createdAt.toISOString(),
         })),
@@ -244,6 +278,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(async 
             .map((movie) => myMovieCards.get(movie.id))
             .filter((movie): movie is MovieCardData => Boolean(movie)),
         users,
+        canManageUsers: user.role === 'ADMIN',
     };
 });
 
@@ -259,7 +294,12 @@ export const searchUsersForFriends = createServerFn({ method: 'GET' })
             where: { userId: user.id },
             select: { friendId: true },
         });
+        const following = await db.userFollow.findMany({
+            where: { followerId: user.id },
+            select: { followingId: true },
+        });
         const friendIds = new Set(friendships.map((item) => item.friendId));
+        const followingIds = new Set(following.map((item) => item.followingId));
 
         const users = await db.user.findMany({
             where: {
@@ -284,7 +324,7 @@ export const searchUsersForFriends = createServerFn({ method: 'GET' })
             },
         });
 
-        return users.map((item) => mapDashboardUser(item, friendIds));
+        return users.map((item) => mapDashboardUser(item, friendIds, followingIds));
     });
 
 export const addFriend = createServerFn({ method: 'POST' })
@@ -317,6 +357,39 @@ export const removeFriend = createServerFn({ method: 'POST' })
 
         await db.userFriend
             .delete({ where: { userId_friendId: { userId: user.id, friendId: data.friendId } } })
+            .catch(() => null);
+
+        return { ok: true as const };
+    });
+
+export const followUser = createServerFn({ method: 'POST' })
+    .validator(followSchema)
+    .handler(async ({ data }) => {
+        const db = await getDb();
+        const user = await getAuthUser();
+        if (!user) return { ok: false as const, error: 'Нужен вход' };
+        if (data.userId === user.id) return { ok: false as const, error: 'Нельзя подписаться на себя' };
+
+        const target = await db.user.findUnique({ where: { id: data.userId }, select: { id: true } });
+        if (!target) return { ok: false as const, error: 'Пользователь не найден' };
+
+        await db.userFollow.createMany({
+            data: { followerId: user.id, followingId: data.userId },
+            skipDuplicates: true,
+        });
+
+        return { ok: true as const };
+    });
+
+export const unfollowUser = createServerFn({ method: 'POST' })
+    .validator(followSchema)
+    .handler(async ({ data }) => {
+        const db = await getDb();
+        const user = await getAuthUser();
+        if (!user) return { ok: false as const, error: 'Нужен вход' };
+
+        await db.userFollow
+            .delete({ where: { followerId_followingId: { followerId: user.id, followingId: data.userId } } })
             .catch(() => null);
 
         return { ok: true as const };

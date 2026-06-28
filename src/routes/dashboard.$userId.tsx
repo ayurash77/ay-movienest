@@ -2,6 +2,8 @@ import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/rea
 import { toast } from 'sonner';
 import {
     ArrowLeft,
+    Bell,
+    BellOff,
     Bookmark,
     Check,
     Film,
@@ -21,9 +23,11 @@ import { formatRuDate } from '@/lib/date-format';
 import { cn } from '@/lib/utils';
 import {
     addFriend,
+    followUser,
     getUserProfile,
     removeFriend,
     setUserRole,
+    unfollowUser,
     type DashboardProfileData,
 } from '@/server/dashboard';
 
@@ -107,6 +111,22 @@ function UserProfilePage() {
         }
     };
 
+    const toggleFollow = async () => {
+        try {
+            const response = user.isFollowing
+                ? await unfollowUser({ data: { userId: user.id } })
+                : await followUser({ data: { userId: user.id } });
+            if (response.ok) {
+                toast.success(user.isFollowing ? 'Подписка отключена' : 'Подписка включена');
+                await router.invalidate();
+            } else {
+                toast.error(response.error);
+            }
+        } catch {
+            toast.error('Не удалось обновить подписку');
+        }
+    };
+
     const toggleRole = async () => {
         if (!user.canManage || user.isBootstrapAdmin) return;
         const role = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
@@ -145,10 +165,16 @@ function UserProfilePage() {
                     </div>
                     <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                         {!user.isSelf ? (
-                            <Button variant="outline" size="sm" onClick={toggleFriend}>
-                                {user.isFriend ? <X/> : <UserPlus/>}
-                                {user.isFriend ? 'Убрать' : 'В друзья'}
-                            </Button>
+                            <>
+                                <Button variant="outline" size="sm" onClick={toggleFriend}>
+                                    {user.isFriend ? <X/> : <UserPlus/>}
+                                    {user.isFriend ? 'Убрать' : 'В друзья'}
+                                </Button>
+                                <Button variant={user.isFollowing ? 'default' : 'outline'} size="sm" onClick={toggleFollow}>
+                                    {user.isFollowing ? <BellOff/> : <Bell/>}
+                                    {user.isFollowing ? 'Отписаться' : 'Подписаться'}
+                                </Button>
+                            </>
                         ) : null}
                         {user.canManage ? (
                             <Button
@@ -164,13 +190,15 @@ function UserProfilePage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
                         <StatTile icon={<Film/>} value={user.movieCount} label="Фильмов"/>
                         <StatTile icon={<Star/>} value={user.ratingCount} label="Оценок"/>
                         <StatTile icon={<MessageSquare/>} value={user.commentCount} label="Комментариев"/>
                         <StatTile icon={<Bookmark/>} value={user.watchlistCount} label="К просмотру"/>
                         <StatTile icon={<Check/>} value={user.watchedCount} label="Просмотрено"/>
                         <StatTile icon={<Users/>} value={user.friendCount} label="Друзей"/>
+                        <StatTile icon={<Bell/>} value={user.followerCount} label="Подписчиков"/>
+                        <StatTile icon={<Bell/>} value={user.followingCount} label="Подписок"/>
                     </div>
                 </CardContent>
             </Card>

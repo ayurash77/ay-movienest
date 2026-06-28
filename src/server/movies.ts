@@ -341,6 +341,12 @@ export const createMovie = createServerFn({ method: 'POST' })
         const movie = await db.movie.create({
             data: { ...toMovieData(data), createdById: user.id },
         });
+        try {
+            const { createMovieNotifications } = await import('./notifications');
+            await createMovieNotifications(movie.id, user.id);
+        } catch {
+            // Уведомления не должны блокировать добавление фильма.
+        }
 
         return { ok: true as const, movieId: movie.id };
     });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useRouter } from '@tanstack/react-router';
 import {
+    Bell,
     Bookmark,
     Check,
     LayoutDashboard,
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { signOut, type SessionUser } from '@/server/auth';
+import { getUnreadNotificationCount } from '@/server/notifications';
 
 function initials(name: string) {
     const words = name.trim().split(/\s+/);
@@ -37,6 +39,15 @@ const navLinkClass =
     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0';
 const navLinkActive = 'bg-accent text-foreground font-medium';
 
+function NavCount({ value }: { value: number }) {
+    if (value <= 0) return null;
+    return (
+        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground">
+            {value}
+        </span>
+    );
+}
+
 export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpenTheme?: () => void }) {
     const router = useRouter();
     const navigate = useNavigate();
@@ -48,6 +59,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         ? new URLSearchParams(searchStr).get('kind') ?? ''
         : '';
     const [ query, setQuery ] = useState(urlQuery);
+    const [ unreadNotifications, setUnreadNotifications ] = useState(0);
 
     // Дебаунс: поиск из сайдбара ведёт в каталог с query в URL
     useEffect(() => {
@@ -66,6 +78,29 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         }, 300);
         return () => clearTimeout(handle);
     }, [ query, urlQuery, pathname, navigate ]);
+
+    useEffect(() => {
+        if (!user) {
+            setUnreadNotifications(0);
+            return;
+        }
+
+        let cancelled = false;
+        const refresh = async () => {
+            const count = await getUnreadNotificationCount();
+            if (!cancelled) setUnreadNotifications(count);
+        };
+        const handleChanged = () => {
+            void refresh();
+        };
+
+        void refresh();
+        window.addEventListener('movienest:notifications-changed', handleChanged);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('movienest:notifications-changed', handleChanged);
+        };
+    }, [ user, pathname ]);
 
     const handleSignOut = async () => {
         await signOut();
@@ -109,6 +144,17 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <LayoutDashboard/>
                         Дашборд
+                    </Link>
+                ) : null}
+                {user ? (
+                    <Link
+                        to="/notifications"
+                        className={navLinkClass}
+                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
+                    >
+                        <Bell/>
+                        <span className="min-w-0 flex-1 truncate">Уведомления</span>
+                        <NavCount value={unreadNotifications}/>
                     </Link>
                 ) : null}
                 <Link
