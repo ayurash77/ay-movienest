@@ -63,10 +63,12 @@ function initials(name: string) {
     return ((words[0]?.[0] ?? '?') + (words[1]?.[0] ?? '')).toUpperCase();
 }
 
-function Avatar({ name, className = 'size-12' }: { name: string; className?: string }) {
-    return (
+function Avatar({ user, className = 'size-12' }: { user: { name: string; avatarUrl: string | null }; className?: string }) {
+    return user.avatarUrl ? (
+        <img src={user.avatarUrl} alt="" className={cn('shrink-0 rounded-full object-cover', className)}/>
+    ) : (
         <span className={cn('grid shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground', className)}>
-            {initials(name)}
+            {initials(user.name)}
         </span>
     );
 }
@@ -296,7 +298,7 @@ function FriendCard({ user, busy, onRemove }: {
 }) {
     return (
         <div className="flex items-center gap-3 rounded-lg border border-card-border bg-card p-3">
-            <Avatar name={user.name}/>
+            <Avatar user={user}/>
             <Link to="/dashboard/$userId" params={{ userId: user.id }} className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                     <span className="truncate text-sm font-semibold hover:text-primary">{user.name}</span>
@@ -446,7 +448,7 @@ function AddFriendDialog({ onAdded }: { onAdded: () => void | Promise<void> }) {
                                         disabled={addingId !== null || user.isFriend}
                                         className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-accent disabled:opacity-60"
                                     >
-                                        <Avatar name={user.name} className="size-10"/>
+                                        <Avatar user={user} className="size-10"/>
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-1.5">
                                                 <span className="truncate text-sm font-medium">{user.name}</span>
@@ -503,7 +505,7 @@ function AdminUserCardView({ user, roleBusy, followBusy, canManageRoles, onSetRo
             className="group flex cursor-pointer flex-col gap-2 rounded-lg border border-card-border bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-card-border-active hover:bg-card-active hover:shadow-lg hover:shadow-primary/10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
             <div className="flex min-w-0 items-center gap-3">
-                <Avatar name={user.name}/>
+                <Avatar user={user}/>
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                         <span className="truncate text-sm font-semibold group-hover:text-primary">{user.name}</span>

@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
 import { type MovieCardData } from '@/lib/movie-data';
+import { toServedUploadUrl } from '@/lib/upload-url';
 import { BOOTSTRAP_ADMIN_EMAILS, resolveRole, type UserRole } from '@/lib/user-roles';
 
 async function getDb() {
@@ -20,6 +21,7 @@ export type DashboardUserCard = {
     id: string;
     name: string;
     email: string;
+    avatarUrl: string | null;
     role: UserRole;
     movieCount: number;
     ratingCount: number;
@@ -43,6 +45,7 @@ export type DashboardProfileData = {
     id: string;
     name: string;
     email: string;
+    avatarUrl: string | null;
     role: UserRole;
     isBootstrapAdmin: boolean;
     createdAt: string;
@@ -65,6 +68,7 @@ export type AdminUserCard = {
     id: string;
     email: string;
     name: string;
+    avatarUrl: string | null;
     role: UserRole;
     isBootstrapAdmin: boolean;
     createdAt: string;
@@ -86,6 +90,7 @@ function mapDashboardUser(
         id: string;
         name: string;
         email: string;
+        avatarUrl: string | null;
         role: string;
         _count: { movies: number; ratings: number };
     },
@@ -96,6 +101,7 @@ function mapDashboardUser(
         id: user.id,
         name: user.name,
         email: user.email,
+        avatarUrl: toServedUploadUrl(user.avatarUrl),
         role: resolveRole(user.email, user.role),
         movieCount: user._count.movies,
         ratingCount: user._count.ratings,
@@ -116,6 +122,7 @@ async function listDashboardUsers(
             id: true,
             email: true,
             name: true,
+            avatarUrl: true,
             role: true,
             createdAt: true,
             _count: { select: { movies: true, ratings: true, comments: true } },
@@ -126,6 +133,7 @@ async function listDashboardUsers(
         id: u.id,
         email: u.email,
         name: u.name,
+        avatarUrl: toServedUploadUrl(u.avatarUrl),
         role: resolveRole(u.email, u.role),
         isBootstrapAdmin: BOOTSTRAP_ADMIN_EMAILS.includes(u.email.toLowerCase()),
         createdAt: u.createdAt.toISOString(),
@@ -171,6 +179,7 @@ export const getUserProfile = createServerFn({ method: 'GET' })
                 id: true,
                 email: true,
                 name: true,
+                avatarUrl: true,
                 role: true,
                 createdAt: true,
                 _count: { select: { movies: true, ratings: true, comments: true, friends: true } },
@@ -209,6 +218,7 @@ export const getUserProfile = createServerFn({ method: 'GET' })
                 id: user.id,
                 email: user.email,
                 name: user.name,
+                avatarUrl: toServedUploadUrl(user.avatarUrl),
                 role: resolveRole(user.email, user.role),
                 isBootstrapAdmin: BOOTSTRAP_ADMIN_EMAILS.includes(user.email.toLowerCase()),
                 createdAt: user.createdAt.toISOString(),
@@ -246,6 +256,7 @@ export const getDashboardData = createServerFn({ method: 'GET' }).handler(async 
                         id: true,
                         name: true,
                         email: true,
+                        avatarUrl: true,
                         role: true,
                         _count: { select: { movies: true, ratings: true } },
                     },
@@ -319,6 +330,7 @@ export const searchUsersForFriends = createServerFn({ method: 'GET' })
                 id: true,
                 name: true,
                 email: true,
+                avatarUrl: true,
                 role: true,
                 _count: { select: { movies: true, ratings: true } },
             },

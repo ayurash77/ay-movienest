@@ -153,9 +153,13 @@ function UserProfilePage() {
 
             <Card>
                 <CardHeader className="flex-row items-center gap-4">
-                    <span className="grid size-16 shrink-0 place-items-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                        {initials(user.name)}
-                    </span>
+                    {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt="" className="size-16 shrink-0 rounded-full object-cover"/>
+                    ) : (
+                        <span className="grid size-16 shrink-0 place-items-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+                            {initials(user.name)}
+                        </span>
+                    )}
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                             <CardTitle className="truncate text-xl">{user.name}</CardTitle>

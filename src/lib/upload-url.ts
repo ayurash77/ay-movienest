@@ -32,7 +32,7 @@ export function toServedUploadUrl(url: string | null | undefined): string | null
     for (const base of s3PublicBases()) {
         if (withoutQuery.startsWith(`${base}/`)) {
             const key = withoutQuery.slice(base.length + 1);
-            if (/^posters\//.test(key)) return uploadPathForKey(key);
+            if (/^(posters|avatars)\//.test(key)) return uploadPathForKey(key);
         }
     }
 

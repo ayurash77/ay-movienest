@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { deleteCookie, getCookie, setCookie } from '@tanstack/react-start/server';
 
 import { db } from '@/lib/db';
+import { toServedUploadUrl } from '@/lib/upload-url';
 import { resolveRole, type UserRole } from '@/lib/user-roles';
 
 const SESSION_COOKIE = 'movienest_session';
@@ -11,6 +12,7 @@ export type SessionUser = {
     id: string;
     email: string;
     name: string;
+    avatarUrl: string | null;
     role: UserRole;
 };
 
@@ -56,6 +58,7 @@ export async function getAuthUser(): Promise<SessionUser | null> {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
+        avatarUrl: toServedUploadUrl(session.user.avatarUrl),
         role: resolveRole(session.user.email, session.user.role),
     };
 }

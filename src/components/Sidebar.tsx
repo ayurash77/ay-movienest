@@ -293,9 +293,13 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                                     type="button"
                                     className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
                                 >
-                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                                        {initials(user.name)}
-                                    </span>
+                                    {user.avatarUrl ? (
+                                        <img src={user.avatarUrl} alt="" className="size-8 shrink-0 rounded-full object-cover"/>
+                                    ) : (
+                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                                            {initials(user.name)}
+                                        </span>
+                                    )}
                                     <span className="min-w-0">
                                         <span className="block truncate text-sm font-medium">{user.name}</span>
                                         <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
