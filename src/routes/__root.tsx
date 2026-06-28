@@ -60,6 +60,29 @@ function RootLayout() {
         setIsMobileMenuOpen(false);
     }, [ pathname ]);
 
+    const mobileMenu = (
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Открыть меню">
+                    <Menu/>
+                </Button>
+            </SheetTrigger>
+            <SheetContent>
+                <Sidebar
+                    user={user}
+                    onOpenProfile={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsProfileOpen(true);
+                    }}
+                    onOpenTheme={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsThemeOpen(true);
+                    }}
+                />
+            </SheetContent>
+        </Sheet>
+    );
+
     return (
         <div className="flex min-h-svh bg-background">
             <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r border-border bg-background shadow-[10px_0_30px_rgb(0_0_0/0.18)] md:block">
@@ -84,26 +107,7 @@ function RootLayout() {
                             </Link>
                         </Button>
                     ) : (
-                        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                            <SheetTrigger asChild>
-                                <Button variant="ghost" size="icon" className="md:hidden" aria-label="Открыть меню">
-                                    <Menu/>
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent>
-                                <Sidebar
-                                    user={user}
-                                    onOpenProfile={() => {
-                                        setIsMobileMenuOpen(false);
-                                        setIsProfileOpen(true);
-                                    }}
-                                    onOpenTheme={() => {
-                                        setIsMobileMenuOpen(false);
-                                        setIsThemeOpen(true);
-                                    }}
-                                />
-                            </SheetContent>
-                        </Sheet>
+                        mobileMenu
                     )}
                     {appTitle ? (
                         <div className="min-w-0 truncate text-lg font-semibold tracking-tight">
@@ -125,6 +129,11 @@ function RootLayout() {
                             </>
                         </Link>
                     )}
+                    {appTitle?.mobileBackTo ? (
+                        <div className="ml-auto md:hidden">
+                            {mobileMenu}
+                        </div>
+                    ) : null}
                 </header>
 
                 <main className={isChatRoute ? 'mx-auto flex h-[calc(100svh-3.5rem)] min-h-0 w-full max-w-6xl flex-1 overflow-hidden px-3 py-0 md:px-4 md:py-5' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-5'}>
