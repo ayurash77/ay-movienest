@@ -94,7 +94,7 @@
 }
 
 :root {
-    --surface: color-mix(in oklch, var(--background) 95%, white 5%);
+    --surface: color-mix(in oklch, var(--background) 96%, black 4%);
     --card: color-mix(in oklch, var(--background) 90%, var(--secondary) 30%);
     --card-active: color-mix(in oklch, var(--secondary) 70%, white 3%);
     --card-border: color-mix(in oklch, var(--card) 80%, white 2%);
