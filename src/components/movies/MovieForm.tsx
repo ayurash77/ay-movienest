@@ -80,7 +80,7 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                     required
                     value={kind}
                     onChange={(event) => setKind(event.currentTarget.value as NonNullable<MovieFormFields['kind']>)}
-                    className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+                    className="h-9 rounded-md border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 sm:text-sm"
                 >
                     {Object.entries(KIND_LABELS).map(([ value, label ]) => (
                         <option key={value} value={value}>{label}</option>
