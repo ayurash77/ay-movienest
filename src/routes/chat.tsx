@@ -370,12 +370,12 @@ function ChatPage() {
                                         type="button"
                                         variant="outline"
                                         size="icon"
-                                        className="shrink-0 rounded-full bg-popover shadow-[0_10px_28px_rgb(0_0_0/0.22)] disabled:opacity-80"
+                                        className="size-10 shrink-0 rounded-full bg-popover shadow-[0_10px_28px_rgb(0_0_0/0.22)] disabled:opacity-80"
                                         onClick={() => fileRef.current?.click()}
                                         disabled={isSending}
                                         aria-label="Прикрепить фото"
                                     >
-                                        <Paperclip/>
+                                        <Paperclip className="size-5"/>
                                     </Button>
                                     <Input
                                         ref={inputRef}
@@ -384,10 +384,10 @@ function ChatPage() {
                                         placeholder="Сообщение"
                                         maxLength={2000}
                                         autoComplete="off"
-                                        className="rounded-full shadow-[0_10px_28px_rgb(0_0_0/0.22)] backdrop-blur-md"
+                                        className="h-10 rounded-full px-4 shadow-[0_10px_28px_rgb(0_0_0/0.22)] backdrop-blur-md"
                                     />
-                                    <Button type="submit" size="icon" className="shrink-0 rounded-full shadow-[0_10px_28px_rgb(0_0_0/0.24)] disabled:opacity-80" disabled={isSending || (!text.trim() && !imageFile)} aria-label="Отправить">
-                                        {isSending ? <Loader2 className="animate-spin"/> : <Send/>}
+                                    <Button type="submit" size="icon" className="size-10 shrink-0 rounded-full shadow-[0_10px_28px_rgb(0_0_0/0.24)] disabled:opacity-80" disabled={isSending || (!text.trim() && !imageFile)} aria-label="Отправить">
+                                        {isSending ? <Loader2 className="size-5 animate-spin"/> : <Send className="size-5"/>}
                                     </Button>
                                 </form>
                             </div>
