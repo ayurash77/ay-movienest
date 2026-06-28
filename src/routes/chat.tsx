@@ -308,7 +308,7 @@ function ChatPage() {
                 <section className={cn('relative min-h-0 overflow-hidden flex-col', activeThread ? 'flex' : 'hidden md:flex')}>
                     {activeThread ? (
                         <>
-                            <div className="hidden items-center gap-3 border-b border-border/70 px-1 pb-3 md:flex">
+                            <div className="hidden items-center gap-3 border-b border-border/70 bg-background/75 px-1 pb-3 backdrop-blur-md md:flex">
                                 <ChatAvatar user={activeThread.friend} className="size-9"/>
                                 <div className="min-w-0">
                                     <div className="truncate text-sm font-semibold">{activeThread.friend?.name ?? 'Диалог'}</div>

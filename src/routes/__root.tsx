@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getSessionUser } from '@/server/auth';
 import { applyTheme, getStoredTheme } from '@/lib/theme';
+import { cn } from '@/lib/utils';
 
 export const Route = createRootRoute({
     head: () => ({
@@ -70,7 +71,12 @@ function RootLayout() {
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col bg-surface">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/90 px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md">
+                <header
+                    className={cn(
+                        'sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md',
+                        isChatRoute ? 'bg-background/75' : 'bg-background/90',
+                    )}
+                >
                     {appTitle?.mobileBackTo ? (
                         <Button asChild variant="ghost" size="icon" className="md:hidden" aria-label="Назад">
                             <Link to={appTitle.mobileBackTo}>
