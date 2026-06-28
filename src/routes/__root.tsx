@@ -100,15 +100,14 @@ function RootLayout() {
                         isChatRoute ? 'bg-background/75' : 'bg-background/90',
                     )}
                 >
+                    {mobileMenu}
                     {appTitle?.mobileBackTo ? (
                         <Button asChild variant="ghost" size="icon" className="md:hidden" aria-label="Назад">
                             <Link to={appTitle.mobileBackTo}>
                                 <ArrowLeft/>
                             </Link>
                         </Button>
-                    ) : (
-                        mobileMenu
-                    )}
+                    ) : null}
                     {appTitle ? (
                         <div className="min-w-0 truncate text-lg font-semibold tracking-tight">
                             {appTitle.title}
@@ -129,11 +128,6 @@ function RootLayout() {
                             </>
                         </Link>
                     )}
-                    {appTitle?.mobileBackTo ? (
-                        <div className="ml-auto md:hidden">
-                            {mobileMenu}
-                        </div>
-                    ) : null}
                 </header>
 
                 <main className={isChatRoute ? 'mx-auto flex h-[calc(100svh-3.5rem)] min-h-0 w-full max-w-6xl flex-1 overflow-hidden px-3 py-0 md:px-4 md:py-5' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-5'}>
