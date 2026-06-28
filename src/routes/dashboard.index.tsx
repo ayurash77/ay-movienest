@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from '@tanstack/react-router';
 import { toast } from 'sonner';
+import { z } from 'zod';
 import {
     Bell,
     BellOff,
@@ -41,9 +42,13 @@ import {
     type DashboardUserCard,
 } from '@/server/dashboard';
 
-type DashboardTab = 'movies' | 'friends' | 'users';
+const dashboardTabOptions = [ 'movies', 'friends', 'users' ] as const;
+type DashboardTab = typeof dashboardTabOptions[number];
 
 export const Route = createFileRoute('/dashboard/')({
+    validateSearch: z.object({
+        tab: z.enum(dashboardTabOptions).optional(),
+    }),
     beforeLoad: ({ context, location }) => {
         if (!context.user) {
             throw redirect({ to: '/sign-in', search: { redirectTo: location.href } });
@@ -78,15 +83,34 @@ function RoleBadge({ role }: { role: DashboardUserCard['role'] }) {
 
 function DashboardPage() {
     const data = Route.useLoaderData();
+    const { tab } = Route.useSearch();
     const router = useRouter();
+    const navigate = useNavigate({ from: Route.fullPath });
     const friends = data?.friends ?? [];
     const myMovies = data?.myMovies ?? [];
     const users = data?.users ?? [];
     const canManageUsers = data?.canManageUsers ?? false;
-    const [ activeTab, setActiveTab ] = useState<DashboardTab>('movies');
+    const selectedTab = tab ?? 'movies';
+    const [ activeTab, setActiveTab ] = useState<DashboardTab>(selectedTab);
     const [ busyUserId, setBusyUserId ] = useState<string | null>(null);
     const [ followingUserId, setFollowingUserId ] = useState<string | null>(null);
     const [ removingFriendId, setRemovingFriendId ] = useState<string | null>(null);
+
+    useEffect(() => {
+        setActiveTab(selectedTab);
+    }, [ selectedTab ]);
+
+    const handleTabChange = (value: string) => {
+        const nextTab = value as DashboardTab;
+        setActiveTab(nextTab);
+        navigate({
+            search: (prev) => ({
+                ...prev,
+                tab: nextTab === 'movies' ? undefined : nextTab,
+            }),
+            replace: true,
+        });
+    };
 
     const handleSetRole = async (user: AdminUserCard, role: 'USER' | 'ADMIN') => {
         if (busyUserId || user.role === role || user.isBootstrapAdmin) return;
@@ -146,7 +170,7 @@ function DashboardPage() {
     return (
         <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as DashboardTab)}
+            onValueChange={handleTabChange}
             className="flex flex-col gap-5"
         >
             <div className="flex flex-wrap items-center justify-between gap-3">

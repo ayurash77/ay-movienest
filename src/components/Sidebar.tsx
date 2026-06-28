@@ -14,6 +14,7 @@ import {
     Search,
     Settings,
     UserRound,
+    Users,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -54,11 +55,15 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
     const router = useRouter();
     const navigate = useNavigate();
     const { pathname, searchStr } = useLocation();
+    const searchParams = new URLSearchParams(searchStr);
     const urlQuery = pathname === '/movies'
-        ? new URLSearchParams(searchStr).get('q') ?? ''
+        ? searchParams.get('q') ?? ''
         : '';
     const urlKind = pathname === '/movies'
-        ? new URLSearchParams(searchStr).get('kind') ?? ''
+        ? searchParams.get('kind') ?? ''
+        : '';
+    const dashboardTab = pathname === '/dashboard'
+        ? searchParams.get('tab') ?? ''
         : '';
     const [ query, setQuery ] = useState(urlQuery);
     const [ unreadNotifications, setUnreadNotifications ] = useState(0);
@@ -150,38 +155,6 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     <Home/>
                     Фильмотека
                 </Link>
-                {user ? (
-                    <Link
-                        to="/dashboard"
-                        className={navLinkClass}
-                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
-                    >
-                        <LayoutDashboard/>
-                        Дашборд
-                    </Link>
-                ) : null}
-                {user ? (
-                    <Link
-                        to="/chat"
-                        className={navLinkClass}
-                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
-                    >
-                        <MessageCircle/>
-                        <span className="min-w-0 flex-1 truncate">Чат</span>
-                        <NavCount value={unreadChats}/>
-                    </Link>
-                ) : null}
-                {user ? (
-                    <Link
-                        to="/notifications"
-                        className={navLinkClass}
-                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
-                    >
-                        <Bell/>
-                        <span className="min-w-0 flex-1 truncate">Уведомления</span>
-                        <NavCount value={unreadNotifications}/>
-                    </Link>
-                ) : null}
                 <Link
                     to="/movies"
                     search={{ kind: 'MOVIE' }}
@@ -206,6 +179,36 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     <Film/>
                     Мультфильмы
                 </Link>
+                {user ? (
+                    <Link
+                        to="/dashboard"
+                        className={cn(navLinkClass, pathname === '/dashboard' && (!dashboardTab || dashboardTab === 'movies') && navLinkActive)}
+                    >
+                        <LayoutDashboard/>
+                        Дашборд
+                    </Link>
+                ) : null}
+                {user ? (
+                    <Link
+                        to="/dashboard"
+                        search={{ tab: 'friends' }}
+                        className={cn(navLinkClass, pathname === '/dashboard' && dashboardTab === 'friends' && navLinkActive)}
+                    >
+                        <Users/>
+                        Друзья
+                    </Link>
+                ) : null}
+                {user ? (
+                    <Link
+                        to="/chat"
+                        className={navLinkClass}
+                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
+                    >
+                        <MessageCircle/>
+                        <span className="min-w-0 flex-1 truncate">Чат</span>
+                        <NavCount value={unreadChats}/>
+                    </Link>
+                ) : null}
                 {user ? (
                     <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
                         <div className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -255,6 +258,17 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
             ) : null}
 
             <div className="mt-auto flex flex-col gap-1">
+                {user ? (
+                    <Link
+                        to="/notifications"
+                        className={navLinkClass}
+                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
+                    >
+                        <Bell/>
+                        <span className="min-w-0 flex-1 truncate">Уведомления</span>
+                        <NavCount value={unreadNotifications}/>
+                    </Link>
+                ) : null}
                 <button
                     type="button"
                     onClick={onOpenTheme}
