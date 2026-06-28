@@ -121,7 +121,7 @@ function RootLayout() {
                     )}
                 </header>
 
-                <main className={isChatRoute ? 'mx-auto flex w-full max-w-6xl flex-1 px-3 py-0 md:px-4 md:py-5' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-5'}>
+                <main className={isChatRoute ? 'mx-auto flex h-[calc(100svh-3.5rem)] min-h-0 w-full max-w-6xl flex-1 overflow-hidden px-3 py-0 md:px-4 md:py-5' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-5'}>
                     <Outlet/>
                 </main>
                 {!isChatRoute ? (
