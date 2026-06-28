@@ -16,6 +16,12 @@ import {
 
 import { MovieGallery } from '@/components/movies/MovieGallery';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -29,6 +35,8 @@ import {
     type DashboardFriendCard,
     type DashboardUserCard,
 } from '@/server/dashboard';
+
+type DashboardTab = 'movies' | 'friends' | 'users';
 
 export const Route = createFileRoute('/dashboard/')({
     beforeLoad: ({ context, location }) => {
@@ -70,6 +78,7 @@ function DashboardPage() {
     const myMovies = data?.myMovies ?? [];
     const users = data?.users ?? null;
     const isAdmin = users !== null;
+    const [ activeTab, setActiveTab ] = useState<DashboardTab>('movies');
     const [ busyUserId, setBusyUserId ] = useState<string | null>(null);
     const [ removingFriendId, setRemovingFriendId ] = useState<string | null>(null);
 
@@ -109,14 +118,22 @@ function DashboardPage() {
     };
 
     return (
-        <Tabs defaultValue="movies" className="flex flex-col gap-5">
+        <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as DashboardTab)}
+            className="flex flex-col gap-5"
+        >
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <TabsList className="max-w-full overflow-x-auto">
                     <TabsTrigger value="movies">Мои фильмы</TabsTrigger>
                     <TabsTrigger value="friends">Друзья</TabsTrigger>
                     {isAdmin ? <TabsTrigger value="users">Пользователи</TabsTrigger> : null}
                 </TabsList>
-                <AddFriendDialog onAdded={() => router.invalidate()}/>
+                {activeTab === 'movies' ? (
+                    <AddMovieDropdown/>
+                ) : activeTab === 'friends' ? (
+                    <AddFriendDialog onAdded={() => router.invalidate()}/>
+                ) : null}
             </div>
 
             <TabsContent value="movies">
@@ -189,6 +206,35 @@ function DashboardPage() {
                 </TabsContent>
             ) : null}
         </Tabs>
+    );
+}
+
+function AddMovieDropdown() {
+    const navigate = useNavigate();
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button size="sm">
+                    <Plus/>
+                    Добавить
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'MOVIE' } })}>
+                    <Film/>
+                    Фильм
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'SERIES' } })}>
+                    <Film/>
+                    Сериал
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'CARTOON' } })}>
+                    <Film/>
+                    Мультфильм
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
 
