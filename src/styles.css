@@ -97,7 +97,7 @@
 :root {
     --surface: color-mix(in oklch, var(--background) 96%, black 4%);
     --popover-panel: color-mix(in oklch, var(--popover) 94%, white 6%);
-    --field: color-mix(in oklch, var(--input) 94%, white 6%);
+    --field: color-mix(in oklch, var(--input) 50%, transparent);
     --card: color-mix(in oklch, var(--background) 90%, var(--secondary) 30%);
     --chat-bubble: color-mix(in oklch, var(--card) 94%, white 6%);
     --card-active: color-mix(in oklch, var(--secondary) 70%, white 3%);
