@@ -4,6 +4,7 @@ import { Film, Menu } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 import appCss from '../styles.css?url';
+import { ProfileDialog } from '@/components/ProfileDialog';
 import { Sidebar } from '@/components/Sidebar';
 import { ThemeDialog } from '@/components/ThemeDialog';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ function RootComponent() {
     const { user } = Route.useRouteContext();
     const { pathname } = useLocation();
     const [ isMobileMenuOpen, setIsMobileMenuOpen ] = useState(false);
+    const [ isProfileOpen, setIsProfileOpen ] = useState(false);
     const [ isThemeOpen, setIsThemeOpen ] = useState(false);
     const headerTitle = pathname === '/dashboard' || pathname === '/dashboard/'
         ? 'Дашборд'
@@ -52,7 +54,11 @@ function RootComponent() {
     return (
         <div className="flex min-h-svh bg-background">
             <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r border-border bg-background shadow-[10px_0_30px_rgb(0_0_0/0.18)] md:block">
-                <Sidebar user={user} onOpenTheme={() => setIsThemeOpen(true)}/>
+                <Sidebar
+                    user={user}
+                    onOpenProfile={() => setIsProfileOpen(true)}
+                    onOpenTheme={() => setIsThemeOpen(true)}
+                />
             </aside>
 
             <div className="flex min-w-0 flex-1 flex-col bg-surface">
@@ -66,6 +72,10 @@ function RootComponent() {
                         <SheetContent>
                             <Sidebar
                                 user={user}
+                                onOpenProfile={() => {
+                                    setIsMobileMenuOpen(false);
+                                    setIsProfileOpen(true);
+                                }}
                                 onOpenTheme={() => {
                                     setIsMobileMenuOpen(false);
                                     setIsThemeOpen(true);
@@ -90,6 +100,7 @@ function RootComponent() {
                     MovieNest — ваша библиотека фильмов
                 </footer>
             </div>
+            <ProfileDialog open={isProfileOpen} onOpenChange={setIsProfileOpen} user={user}/>
             <ThemeDialog open={isThemeOpen} onOpenChange={setIsThemeOpen} userId={user?.id ?? null}/>
             <Toaster theme="dark" position="bottom-right"/>
         </div>

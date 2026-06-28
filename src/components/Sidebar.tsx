@@ -89,7 +89,15 @@ function UserAvatar({ user, className = 'size-8' }: { user: SessionUser; classNa
     );
 }
 
-export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpenTheme?: () => void }) {
+export function Sidebar({
+    user,
+    onOpenTheme,
+    onOpenProfile,
+}: {
+    user: SessionUser | null;
+    onOpenTheme?: () => void;
+    onOpenProfile?: () => void;
+}) {
     const router = useRouter();
     const navigate = useNavigate();
     const { pathname, searchStr } = useLocation();
@@ -150,6 +158,14 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         await signOut();
         await router.invalidate();
         navigate({ to: '/' });
+    };
+
+    const handleOpenProfile = () => {
+        if (onOpenProfile) {
+            onOpenProfile();
+            return;
+        }
+        navigate({ to: '/profile' });
     };
 
     return (
@@ -350,7 +366,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                                     </div>
                                 </div>
                                 <DropdownMenuSeparator/>
-                                <DropdownMenuItem onSelect={() => navigate({ to: '/profile' })}>
+                                <DropdownMenuItem onSelect={handleOpenProfile}>
                                     <UserRound/>
                                     Открыть профиль
                                 </DropdownMenuItem>
