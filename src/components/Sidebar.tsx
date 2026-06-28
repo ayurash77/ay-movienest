@@ -13,6 +13,7 @@ import {
     Plus,
     Search,
     Settings,
+    ShieldCheck,
     UserRound,
     Users,
 } from 'lucide-react';
@@ -47,6 +48,26 @@ function NavCount({ value }: { value: number }) {
     return (
         <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground">
             {value}
+        </span>
+    );
+}
+
+function AdminBadge({ role }: { role: SessionUser['role'] }) {
+    if (role !== 'ADMIN') return null;
+    return (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            <ShieldCheck className="size-3"/>
+            admin
+        </span>
+    );
+}
+
+function UserAvatar({ user, className = 'size-8' }: { user: SessionUser; className?: string }) {
+    return user.avatarUrl ? (
+        <img src={user.avatarUrl} alt="" className={cn('shrink-0 rounded-full object-cover', className)}/>
+    ) : (
+        <span className={cn('flex shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground', className)}>
+            {initials(user.name)}
         </span>
     );
 }
@@ -295,20 +316,28 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                                     type="button"
                                     className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-accent"
                                 >
-                                    {user.avatarUrl ? (
-                                        <img src={user.avatarUrl} alt="" className="size-8 shrink-0 rounded-full object-cover"/>
-                                    ) : (
-                                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                                            {initials(user.name)}
+                                    <UserAvatar user={user}/>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="flex items-center gap-1.5">
+                                            <span className="truncate text-sm font-medium">{user.name}</span>
+                                            <AdminBadge role={user.role}/>
                                         </span>
-                                    )}
-                                    <span className="min-w-0">
-                                        <span className="block truncate text-sm font-medium">{user.name}</span>
                                         <span className="block truncate text-xs text-muted-foreground">{user.email}</span>
                                     </span>
                                 </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="top" align="start" className="w-56">
+                                <div className="flex items-center gap-2 px-1 py-1.5">
+                                    <UserAvatar user={user}/>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="truncate text-sm font-semibold">{user.name}</div>
+                                            <AdminBadge role={user.role}/>
+                                        </div>
+                                        <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                                    </div>
+                                </div>
+                                <DropdownMenuSeparator/>
                                 <DropdownMenuItem onSelect={() => navigate({ to: '/profile' })}>
                                     <UserRound/>
                                     Открыть профиль
