@@ -128,136 +128,138 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
     };
 
     return (
-        <div className="flex h-full flex-col gap-4 p-4">
-            <Link to="/" className="flex items-center gap-2 px-1 text-lg font-bold tracking-tight">
-                <Film className="size-6 text-primary"/>
-                Movie<span className="text-primary">Nest</span>
-            </Link>
+        <div className="flex h-full min-h-0 flex-col gap-3 p-3 md:gap-4 md:p-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 md:gap-4">
+                <Link to="/" className="flex items-center gap-2 px-1 text-lg font-bold tracking-tight">
+                    <Film className="size-6 text-primary"/>
+                    Movie<span className="text-primary">Nest</span>
+                </Link>
 
-            <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
-                <Input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Поиск фильмов…"
-                    className="pl-8"
-                    aria-label="Поиск фильмов"
-                />
-            </div>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+                    <Input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Поиск фильмов…"
+                        className="pl-8"
+                        aria-label="Поиск фильмов"
+                    />
+                </div>
 
-            <nav className="flex flex-col gap-1">
-                <Link
-                    to="/"
-                    className={navLinkClass}
-                    activeProps={{ className: cn(navLinkClass, navLinkActive) }}
-                    activeOptions={{ exact: true }}
-                >
-                    <Home/>
-                    Фильмотека
-                </Link>
-                <Link
-                    to="/movies"
-                    search={{ kind: 'MOVIE' }}
-                    className={cn(navLinkClass, pathname === '/movies' && urlKind === 'MOVIE' && navLinkActive)}
-                >
-                    <Film/>
-                    Фильмы
-                </Link>
-                <Link
-                    to="/movies"
-                    search={{ kind: 'SERIES' }}
-                    className={cn(navLinkClass, pathname === '/movies' && urlKind === 'SERIES' && navLinkActive)}
-                >
-                    <Film/>
-                    Сериалы
-                </Link>
-                <Link
-                    to="/movies"
-                    search={{ kind: 'CARTOON' }}
-                    className={cn(navLinkClass, pathname === '/movies' && urlKind === 'CARTOON' && navLinkActive)}
-                >
-                    <Film/>
-                    Мультфильмы
-                </Link>
-                {user ? (
+                <nav className="flex flex-col gap-1">
                     <Link
-                        to="/dashboard"
-                        className={cn(navLinkClass, pathname === '/dashboard' && (!dashboardTab || dashboardTab === 'movies') && navLinkActive)}
-                    >
-                        <LayoutDashboard/>
-                        Дашборд
-                    </Link>
-                ) : null}
-                {user ? (
-                    <Link
-                        to="/dashboard"
-                        search={{ tab: 'friends' }}
-                        className={cn(navLinkClass, pathname === '/dashboard' && dashboardTab === 'friends' && navLinkActive)}
-                    >
-                        <Users/>
-                        Друзья
-                    </Link>
-                ) : null}
-                {user ? (
-                    <Link
-                        to="/chat"
+                        to="/"
                         className={navLinkClass}
                         activeProps={{ className: cn(navLinkClass, navLinkActive) }}
+                        activeOptions={{ exact: true }}
                     >
-                        <MessageCircle/>
-                        <span className="min-w-0 flex-1 truncate">Чат</span>
-                        <NavCount value={unreadChats}/>
+                        <Home/>
+                        Фильмотека
                     </Link>
-                ) : null}
-                {user ? (
-                    <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
-                        <div className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Мои списки
-                        </div>
+                    <Link
+                        to="/movies"
+                        search={{ kind: 'MOVIE' }}
+                        className={cn(navLinkClass, pathname === '/movies' && urlKind === 'MOVIE' && navLinkActive)}
+                    >
+                        <Film/>
+                        Фильмы
+                    </Link>
+                    <Link
+                        to="/movies"
+                        search={{ kind: 'SERIES' }}
+                        className={cn(navLinkClass, pathname === '/movies' && urlKind === 'SERIES' && navLinkActive)}
+                    >
+                        <Film/>
+                        Сериалы
+                    </Link>
+                    <Link
+                        to="/movies"
+                        search={{ kind: 'CARTOON' }}
+                        className={cn(navLinkClass, pathname === '/movies' && urlKind === 'CARTOON' && navLinkActive)}
+                    >
+                        <Film/>
+                        Мультфильмы
+                    </Link>
+                    {user ? (
                         <Link
-                            to="/my"
-                            className={cn(navLinkClass, pathname === '/my' && navLinkActive)}
+                            to="/dashboard"
+                            className={cn(navLinkClass, pathname === '/dashboard' && (!dashboardTab || dashboardTab === 'movies') && navLinkActive)}
                         >
-                            <Bookmark/>
-                            К просмотру
+                            <LayoutDashboard/>
+                            Дашборд
                         </Link>
+                    ) : null}
+                    {user ? (
                         <Link
-                            to="/my"
+                            to="/dashboard"
+                            search={{ tab: 'friends' }}
+                            className={cn(navLinkClass, pathname === '/dashboard' && dashboardTab === 'friends' && navLinkActive)}
+                        >
+                            <Users/>
+                            Друзья
+                        </Link>
+                    ) : null}
+                    {user ? (
+                        <Link
+                            to="/chat"
                             className={navLinkClass}
+                            activeProps={{ className: cn(navLinkClass, navLinkActive) }}
                         >
-                            <Check/>
-                            Просмотрено
+                            <MessageCircle/>
+                            <span className="min-w-0 flex-1 truncate">Чат</span>
+                            <NavCount value={unreadChats}/>
                         </Link>
-                    </div>
+                    ) : null}
+                    {user ? (
+                        <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
+                            <div className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                Мои списки
+                            </div>
+                            <Link
+                                to="/my"
+                                className={cn(navLinkClass, pathname === '/my' && navLinkActive)}
+                            >
+                                <Bookmark/>
+                                К просмотру
+                            </Link>
+                            <Link
+                                to="/my"
+                                className={navLinkClass}
+                            >
+                                <Check/>
+                                Просмотрено
+                            </Link>
+                        </div>
+                    ) : null}
+                </nav>
+
+                {user ? (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button size="sm" className="justify-start">
+                                <Plus/>
+                                Добавить
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-48">
+                            <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'MOVIE' } })}>
+                                <Film/>
+                                Фильм
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'SERIES' } })}>
+                                <Film/>
+                                Сериал
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'CARTOON' } })}>
+                                <Film/>
+                                Мультфильм
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 ) : null}
-            </nav>
+            </div>
 
-            {user ? (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button size="sm" className="justify-start">
-                            <Plus/>
-                            Добавить
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48">
-                        <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'MOVIE' } })}>
-                            <Film/>
-                            Фильм
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'SERIES' } })}>
-                            <Film/>
-                            Сериал
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => navigate({ to: '/movies/new', search: { kind: 'CARTOON' } })}>
-                            <Film/>
-                            Мультфильм
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ) : null}
-
-            <div className="mt-auto flex flex-col gap-1">
+            <div className="flex shrink-0 flex-col gap-1 border-t border-border pt-3">
                 {user ? (
                     <Link
                         to="/notifications"
