@@ -3,6 +3,7 @@ import { Bookmark, Check, Film, MessageSquare, Settings, Star } from 'lucide-rea
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatRuDate } from '@/lib/date-format';
 import { getMyProfile } from '@/server/profile';
 
 export const Route = createFileRoute('/profile')({
@@ -38,7 +39,7 @@ function StatTile({ icon, value, label }: { icon: React.ReactNode; value: number
 
 function ProfilePage() {
     const profile = Route.useLoaderData();
-    const joined = new Date(profile.createdAt).toLocaleDateString('ru-RU');
+    const joined = formatRuDate(profile.createdAt);
 
     return (
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">

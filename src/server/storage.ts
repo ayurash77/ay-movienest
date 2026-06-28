@@ -3,6 +3,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { S3Client } from '@aws-sdk/client-s3';
 
+import { uploadPathForKey } from '@/lib/upload-url';
+
 export type StorageSubdir = 'posters';
 
 const s3Configured = Boolean(
@@ -38,9 +40,56 @@ function publicUrl(key: string) {
     return `${base}/${key}`;
 }
 
+export function publicUploadUrl(key: string) {
+    return publicUrl(key.replace(/^\/+/, ''));
+}
+
+export async function readUploadObject(key: string, range: string | null) {
+    const s3 = await getClient();
+    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+    const response = await s3.send(new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key.replace(/^\/+/, ''),
+        Range: range ?? undefined,
+    }));
+    const body = response.Body
+        ? await response.Body.transformToByteArray()
+        : new Uint8Array();
+
+    return {
+        body,
+        status: response.$metadata.httpStatusCode ?? (range ? 206 : 200),
+        contentType: response.ContentType ?? null,
+        contentLength: response.ContentLength ?? body.byteLength,
+        cacheControl: response.CacheControl ?? null,
+        acceptRanges: response.AcceptRanges ?? null,
+        contentRange: response.ContentRange ?? null,
+        etag: response.ETag ?? null,
+        lastModified: response.LastModified?.toUTCString() ?? null,
+    };
+}
+
+export async function headUploadObject(key: string) {
+    const s3 = await getClient();
+    const { HeadObjectCommand } = await import('@aws-sdk/client-s3');
+    const response = await s3.send(new HeadObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key.replace(/^\/+/, ''),
+    }));
+
+    return {
+        status: response.$metadata.httpStatusCode ?? 200,
+        contentType: response.ContentType ?? null,
+        contentLength: response.ContentLength ?? null,
+        cacheControl: response.CacheControl ?? null,
+        etag: response.ETag ?? null,
+        lastModified: response.LastModified?.toUTCString() ?? null,
+    };
+}
+
 /**
  * Persist an uploaded file and return the URL to reference it by.
- * - s3:    uploads to the bucket and returns the public object URL (survives redeploys)
+ * - s3:    uploads to the bucket and returns same-origin /uploads URL (served via proxy)
  * - local: writes to ./uploads/<subdir> and returns /uploads/<subdir>/<name>
  */
 export async function storeUpload(
@@ -63,7 +112,7 @@ export async function storeUpload(
             ACL: 'public-read',
             CacheControl: 'public, max-age=31536000, immutable',
         }));
-        return { url: publicUrl(key) };
+        return { url: uploadPathForKey(key) };
     }
 
     const dir = join(process.cwd(), 'uploads', subdir);

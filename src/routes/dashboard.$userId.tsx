@@ -17,6 +17,7 @@ import {
 import { MovieGallery } from '@/components/movies/MovieGallery';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatRuDate } from '@/lib/date-format';
 import { cn } from '@/lib/utils';
 import {
     addFriend,
@@ -88,7 +89,7 @@ function UserProfilePage() {
     }
 
     const user = result.user;
-    const joined = new Date(user.createdAt).toLocaleDateString('ru-RU');
+    const joined = formatRuDate(user.createdAt);
 
     const toggleFriend = async () => {
         try {

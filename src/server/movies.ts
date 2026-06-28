@@ -11,6 +11,7 @@ import {
     type MovieSort,
     type MovieSortDir,
 } from '@/lib/movie-data';
+import { toServedUploadUrl } from '@/lib/upload-url';
 
 async function getDb() {
     return (await import('@/lib/db')).db;
@@ -53,7 +54,7 @@ export async function toMovieCards(ids: string[]): Promise<Map<string, MovieCard
                     title: movie.title,
                     year: movie.year,
                     country: movie.country,
-                    posterUrl: movie.posterUrl,
+                    posterUrl: toServedUploadUrl(movie.posterUrl),
                     seasonsCount: movie.seasonsCount,
                     episodesPerSeason: movie.episodesPerSeason,
                     avgRating: agg?._avg.value ?? 0,
@@ -178,7 +179,7 @@ export const getMovie = createServerFn({ method: 'GET' })
             year: movie.year,
             country: movie.country,
             description: movie.description,
-            posterUrl: movie.posterUrl,
+            posterUrl: toServedUploadUrl(movie.posterUrl),
             trailerUrl: movie.trailerUrl,
             director: movie.director,
             genres: movie.genres,
@@ -230,7 +231,7 @@ function toMovieData(data: z.output<typeof movieFieldsSchema>) {
         year: data.year,
         country: data.country,
         description: data.description,
-        posterUrl: data.posterUrl || null,
+        posterUrl: toServedUploadUrl(data.posterUrl) || null,
         trailerUrl: data.trailerUrl || null,
         director: data.director || null,
         genres: splitList(data.genres),

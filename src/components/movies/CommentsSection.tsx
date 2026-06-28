@@ -5,12 +5,8 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { formatRuDateTime } from '@/lib/date-format';
 import { addComment, deleteComment, type MovieComment } from '@/server/comments';
-
-function formatCommentDate(iso: string) {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString('ru-RU')} ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-}
 
 type CommentsSectionProps = {
     movieId: string;
@@ -94,7 +90,7 @@ export function CommentsSection({ movieId, comments, isAuthed }: CommentsSection
                         <li key={comment.id} className="rounded-lg border border-border bg-card p-3">
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span className="font-medium text-foreground">{comment.authorName}</span>
-                                <span>{formatCommentDate(comment.createdAt)}</span>
+                                <span>{formatRuDateTime(comment.createdAt)}</span>
                                 {comment.isMine ? (
                                     <Button
                                         variant="ghost"

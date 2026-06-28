@@ -23,6 +23,7 @@ const KIND_LABELS: Record<NonNullable<MovieFormFields['kind']>, string> = {
 export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
     const [ isSubmitting, setIsSubmitting ] = useState(false);
     const [ kind, setKind ] = useState<NonNullable<MovieFormFields['kind']>>(defaults?.kind ?? 'MOVIE');
+    const posterPreviewUrl = defaults?.posterUrl?.trim();
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -221,10 +222,10 @@ export function MovieForm({ defaults, submitLabel, onSubmit }: MovieFormProps) {
                 />
             </div>
 
-            {defaults?.posterUrl?.startsWith('http') ? (
+            {posterPreviewUrl ? (
                 <div className="flex items-center gap-3 rounded-md border border-border bg-muted/30 p-2">
                     <img
-                        src={defaults.posterUrl}
+                        src={posterPreviewUrl}
                         alt="Превью постера"
                         className="h-24 rounded object-cover"
                         onError={(e) => {
