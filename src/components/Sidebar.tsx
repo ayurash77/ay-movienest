@@ -29,8 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { signOut, type SessionUser } from '@/server/auth';
-import { getUnreadChatCount } from '@/server/chat';
-import { getUnreadNotificationCount } from '@/server/notifications';
+import { getSidebarCounts, type SidebarCounts } from '@/server/sidebar';
 
 function initials(name: string) {
     const words = name.trim().split(/\s+/);
@@ -43,10 +42,28 @@ const navLinkClass =
     'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-4 [&_svg]:shrink-0';
 const navLinkActive = 'bg-accent text-foreground font-medium';
 
-function NavCount({ value }: { value: number }) {
+const emptyCounts: SidebarCounts = {
+    libraryTotal: 0,
+    movies: 0,
+    series: 0,
+    cartoons: 0,
+    myMovies: 0,
+    friends: 0,
+    watchlist: 0,
+    watched: 0,
+    unreadNotifications: 0,
+    unreadChats: 0,
+};
+
+function NavCount({ value, tone = 'muted' }: { value: number; tone?: 'muted' | 'accent' }) {
     if (value <= 0) return null;
     return (
-        <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground">
+        <span className={cn(
+            'ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
+            tone === 'accent'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-muted-foreground',
+        )}>
             {value}
         </span>
     );
@@ -87,8 +104,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
         ? searchParams.get('tab') ?? ''
         : '';
     const [ query, setQuery ] = useState(urlQuery);
-    const [ unreadNotifications, setUnreadNotifications ] = useState(0);
-    const [ unreadChats, setUnreadChats ] = useState(0);
+    const [ counts, setCounts ] = useState<SidebarCounts>(emptyCounts);
 
     // Дебаунс: поиск из сайдбара ведёт в каталог с query в URL
     useEffect(() => {
@@ -109,22 +125,10 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
     }, [ query, urlQuery, pathname, navigate ]);
 
     useEffect(() => {
-        if (!user) {
-            setUnreadNotifications(0);
-            setUnreadChats(0);
-            return;
-        }
-
         let cancelled = false;
         const refresh = async () => {
-            const [ notificationCount, chatCount ] = await Promise.all([
-                getUnreadNotificationCount(),
-                getUnreadChatCount(),
-            ]);
-            if (!cancelled) {
-                setUnreadNotifications(notificationCount);
-                setUnreadChats(chatCount);
-            }
+            const nextCounts = await getSidebarCounts();
+            if (!cancelled) setCounts(nextCounts);
         };
         const handleChanged = () => {
             void refresh();
@@ -176,6 +180,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <Home/>
                         Фильмотека
+                        <NavCount value={counts.libraryTotal}/>
                     </Link>
                     <Link
                         to="/movies"
@@ -184,6 +189,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <Film/>
                         Фильмы
+                        <NavCount value={counts.movies}/>
                     </Link>
                     <Link
                         to="/movies"
@@ -192,6 +198,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <Film/>
                         Сериалы
+                        <NavCount value={counts.series}/>
                     </Link>
                     <Link
                         to="/movies"
@@ -200,6 +207,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <Film/>
                         Мультфильмы
+                        <NavCount value={counts.cartoons}/>
                     </Link>
                     {user ? (
                         <Link
@@ -208,6 +216,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                         >
                             <LayoutDashboard/>
                             Дашборд
+                            <NavCount value={counts.myMovies}/>
                         </Link>
                     ) : null}
                     {user ? (
@@ -218,6 +227,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                         >
                             <Users/>
                             Друзья
+                            <NavCount value={counts.friends}/>
                         </Link>
                     ) : null}
                     {user ? (
@@ -228,7 +238,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                         >
                             <MessageCircle/>
                             <span className="min-w-0 flex-1 truncate">Чат</span>
-                            <NavCount value={unreadChats}/>
+                            <NavCount value={counts.unreadChats} tone="accent"/>
                         </Link>
                     ) : null}
                     {user ? (
@@ -242,6 +252,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                             >
                                 <Bookmark/>
                                 К просмотру
+                                <NavCount value={counts.watchlist}/>
                             </Link>
                             <Link
                                 to="/my"
@@ -249,6 +260,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                             >
                                 <Check/>
                                 Просмотрено
+                                <NavCount value={counts.watched}/>
                             </Link>
                         </div>
                     ) : null}
@@ -289,7 +301,7 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     >
                         <Bell/>
                         <span className="min-w-0 flex-1 truncate">Уведомления</span>
-                        <NavCount value={unreadNotifications}/>
+                        <NavCount value={counts.unreadNotifications} tone="accent"/>
                     </Link>
                 ) : null}
                 <button
