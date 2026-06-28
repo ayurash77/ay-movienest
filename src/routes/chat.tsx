@@ -280,7 +280,7 @@ function ChatPage() {
     const title = activeThread?.friend?.name ?? 'Чат';
 
     return (
-        <div className="flex h-[calc(100svh-6rem)] min-h-[32rem] flex-col md:h-[calc(100svh-7rem)]">
+        <div className="flex min-h-0 w-full flex-1 flex-col">
             <PageTitle title={title} mobileBackTo={activeThread ? '/chat' : undefined}/>
 
             <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[18rem_minmax(0,1fr)]">
@@ -305,7 +305,7 @@ function ChatPage() {
                     )}
                 </aside>
 
-                <section className={cn('min-h-0 flex-col', activeThread ? 'flex' : 'hidden md:flex')}>
+                <section className={cn('relative min-h-0 flex-col', activeThread ? 'flex' : 'hidden md:flex')}>
                     {activeThread ? (
                         <>
                             <div className="hidden items-center gap-3 border-b border-border/70 px-1 pb-3 md:flex">
@@ -315,7 +315,12 @@ function ChatPage() {
                                     <div className="truncate text-xs text-muted-foreground">{activeThread.friend?.email}</div>
                                 </div>
                             </div>
-                            <div className="min-h-0 flex-1 overflow-y-auto px-0 py-3 md:px-4">
+                            <div
+                                className={cn(
+                                    'min-h-0 flex-1 overflow-y-auto px-0 pt-2 md:px-4 md:pt-3',
+                                    replyTo || imagePreviewUrl ? 'pb-40' : 'pb-24',
+                                )}
+                            >
                                 {messages.length ? (
                                     <div className="flex flex-col gap-2">
                                         {messages.map((message) => (
@@ -329,7 +334,7 @@ function ChatPage() {
                                     </p>
                                 )}
                             </div>
-                            <div className="border-t border-border/70 px-0 py-3 md:px-4">
+                            <div className="absolute inset-x-0 bottom-0 z-10 px-0 pb-3 pt-8 md:px-4 md:pb-4">
                                 {replyTo ? (
                                     <div className="mb-2 flex items-center gap-2 rounded-xl bg-card px-3 py-2 text-xs shadow-[0_8px_22px_rgb(0_0_0/0.14)]">
                                         <div className="min-w-0 flex-1 border-l-2 border-primary pl-2">
