@@ -39,7 +39,7 @@ function NotificationCard({ item, busy, onRead }: {
         <Card className={cn(isUnread && 'border-primary/45 bg-card-active')}>
             <CardHeader className="flex-row items-start gap-3 space-y-0">
                 <span className={cn(
-                    'mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-secondary text-muted-foreground',
+                    'mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-secondary text-badge-foreground',
                     isUnread && 'bg-primary/15 text-primary',
                 )}>
                     {item.type === 'NEW_MOVIE' ? <Film className="size-4"/> : <Bell className="size-4"/>}

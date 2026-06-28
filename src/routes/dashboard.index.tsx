@@ -198,7 +198,7 @@ function DashboardPage() {
                         <div className="flex items-center gap-2">
                             <Film className="size-5 text-primary"/>
                             <h2 className="text-xl font-bold tracking-tight">Мои фильмы</h2>
-                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+                            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-badge-foreground">
                                 {myMovies.length}
                             </span>
                         </div>
@@ -211,7 +211,7 @@ function DashboardPage() {
                     <div className="flex items-center gap-2">
                         <Users className="size-5 text-primary"/>
                         <h2 className="text-xl font-bold tracking-tight">Друзья</h2>
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-badge-foreground">
                             {friends.length}
                         </span>
                     </div>
@@ -237,7 +237,7 @@ function DashboardPage() {
                     <div className="flex items-center gap-2">
                         <Users className="size-5 text-primary"/>
                         <h2 className="text-xl font-bold tracking-tight">Пользователи</h2>
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-badge-foreground">
                             {users.length}
                         </span>
                     </div>

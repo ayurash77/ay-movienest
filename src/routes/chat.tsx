@@ -104,7 +104,7 @@ function MessageBubble({ message, onReply }: { message: ChatMessageData; onReply
                     'max-w-[82%] rounded-2xl px-3 py-2 shadow-[0_8px_22px_rgb(0_0_0/0.16)]',
                     message.isMine
                         ? 'rounded-br-none bg-primary/75 text-primary-foreground'
-                        : 'rounded-bl-none bg-card text-card-foreground',
+                        : 'rounded-bl-none bg-chat-bubble text-card-foreground',
                 )}
             >
                 {!message.isMine ? (

@@ -67,7 +67,7 @@ function RoleBadge({ user }: { user: DashboardProfileData }) {
                 'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
                 user.role === 'ADMIN'
                     ? 'bg-primary/15 text-primary'
-                    : 'bg-secondary text-muted-foreground',
+                    : 'bg-secondary text-badge-foreground',
             )}
         >
             {user.role === 'ADMIN' ? <ShieldCheck className="size-3"/> : <UserRound className="size-3"/>}
@@ -225,7 +225,7 @@ function UserProfilePage() {
                     <div className="flex items-center gap-2">
                         <Film className="size-5 text-primary"/>
                         <h2 className="text-xl font-bold tracking-tight">Фильмы пользователя</h2>
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs tabular-nums text-badge-foreground">
                             {user.movies.length}
                         </span>
                     </div>

@@ -80,7 +80,8 @@
     --primary: oklch(0.68 0.35 258);
     --primary-foreground: oklch(0.97 0.1 250);
     --secondary: oklch(0.7 0.1 275 / 0.2);
-    --secondary-foreground: oklch(0.4 0.01 285);
+    --secondary-foreground: oklch(0.88 0.04 282);
+    --badge-foreground: oklch(0.88 0.04 282);
     --muted: oklch(0.28 0.02 270);
     --muted-foreground: oklch(0.65 0.04 275);
     --accent: oklch(0.3 0.02 270 / 0.5);
@@ -95,7 +96,10 @@
 
 :root {
     --surface: color-mix(in oklch, var(--background) 96%, black 4%);
+    --popover-panel: color-mix(in oklch, var(--popover) 94%, white 6%);
+    --field: color-mix(in oklch, var(--input) 22%, transparent);
     --card: color-mix(in oklch, var(--background) 90%, var(--secondary) 30%);
+    --chat-bubble: color-mix(in oklch, var(--card) 94%, white 6%);
     --card-active: color-mix(in oklch, var(--secondary) 70%, white 3%);
     --card-border: color-mix(in oklch, var(--card) 80%, white 2%);
     --card-border-active: color-mix(in oklch, var(--card-border), white 10%);
@@ -114,8 +118,9 @@
     --color-card-foreground: var(--card-foreground);
     --color-card-border: var(--card-border);
     --color-card-border-active: var(--card-border-active);
-    --color-popover: var(--popover);
+    --color-popover: var(--popover-panel);
     --color-popover-foreground: var(--popover-foreground);
+    --color-badge-foreground: var(--badge-foreground, var(--muted-foreground));
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
     --color-secondary: var(--secondary);
@@ -128,6 +133,8 @@
     --color-destructive-foreground: var(--destructive-foreground);
     --color-border: var(--border);
     --color-input: var(--input);
+    --color-field: var(--field);
+    --color-chat-bubble: var(--chat-bubble);
     --color-ring: var(--ring);
     --color-star: var(--star);
     --radius-sm: calc(var(--radius) - 4px);

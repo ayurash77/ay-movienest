@@ -62,7 +62,7 @@ function NavCount({ value, tone = 'muted' }: { value: number; tone?: 'muted' | '
             'ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
             tone === 'accent'
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-muted-foreground',
+                : 'bg-secondary text-badge-foreground',
         )}>
             {value}
         </span>
