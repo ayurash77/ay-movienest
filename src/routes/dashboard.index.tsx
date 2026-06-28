@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import {
     Film,
@@ -200,16 +200,16 @@ function FriendCard({ user, busy, onRemove }: {
     return (
         <div className="flex items-center gap-3 rounded-lg border border-card-border bg-card p-3">
             <Avatar name={user.name}/>
-            <div className="min-w-0 flex-1">
+            <Link to="/dashboard/$userId" params={{ userId: user.id }} className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold">{user.name}</span>
+                    <span className="truncate text-sm font-semibold hover:text-primary">{user.name}</span>
                     <RoleBadge role={user.role}/>
                 </div>
                 <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground/80">
                     Фильмов: {user.movieCount} · Оценок: {user.ratingCount}
                 </p>
-            </div>
+            </Link>
             <Button
                 type="button"
                 variant="ghost"
@@ -375,10 +375,28 @@ function AdminUserCardView({ user, busy, onSetRole }: {
     busy: boolean;
     onSetRole: (user: AdminUserCard, role: 'USER' | 'ADMIN') => void;
 }) {
+    const navigate = useNavigate();
     const canChange = !user.isBootstrapAdmin;
+    const goToProfile = () => navigate({ to: '/dashboard/$userId', params: { userId: user.id } });
+    const shouldIgnoreCardClick = (target: EventTarget | null) =>
+        target instanceof HTMLElement && Boolean(target.closest('button,a'));
 
     return (
-        <div className="group flex flex-col gap-2 rounded-lg border border-card-border bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-card-border-active hover:bg-card-active hover:shadow-lg hover:shadow-primary/10">
+        <div
+            role="link"
+            tabIndex={0}
+            onClick={(event) => {
+                if (!shouldIgnoreCardClick(event.target)) goToProfile();
+            }}
+            onKeyDown={(event) => {
+                if (shouldIgnoreCardClick(event.target)) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    goToProfile();
+                }
+            }}
+            className="group flex cursor-pointer flex-col gap-2 rounded-lg border border-card-border bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-card-border-active hover:bg-card-active hover:shadow-lg hover:shadow-primary/10 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
             <div className="flex min-w-0 items-center gap-3">
                 <Avatar name={user.name}/>
                 <div className="min-w-0 flex-1">

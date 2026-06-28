@@ -37,6 +37,25 @@ export type DashboardData = {
     users: AdminUserCard[] | null;
 };
 
+export type DashboardProfileData = {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    isBootstrapAdmin: boolean;
+    createdAt: string;
+    movieCount: number;
+    ratingCount: number;
+    commentCount: number;
+    watchlistCount: number;
+    watchedCount: number;
+    friendCount: number;
+    isFriend: boolean;
+    isSelf: boolean;
+    canManage: boolean;
+    movies: MovieCardData[];
+};
+
 export type AdminUserCard = {
     id: string;
     email: string;
@@ -51,6 +70,7 @@ export type AdminUserCard = {
 
 const userSearchSchema = z.object({ q: z.string().trim().max(100).optional() });
 const friendSchema = z.object({ friendId: z.string().min(1) });
+const userIdSchema = z.object({ userId: z.string().min(1) });
 
 function mapDashboardUser(
     user: {
@@ -101,7 +121,7 @@ async function listAdminUsers(): Promise<AdminUserCard[]> {
 }
 
 export const setUserRole = createServerFn({ method: 'POST' })
-    .validator(z.object({ userId: z.string().min(1), role: z.enum([ 'USER', 'ADMIN' ]) }))
+    .validator(userIdSchema.extend({ role: z.enum([ 'USER', 'ADMIN' ]) }))
     .handler(async ({ data }) => {
         const db = await getDb();
         const admin = await getAuthUser();
@@ -118,6 +138,68 @@ export const setUserRole = createServerFn({ method: 'POST' })
 
         await db.user.update({ where: { id: data.userId }, data: { role: data.role } });
         return { ok: true as const };
+    });
+
+export const getUserProfile = createServerFn({ method: 'GET' })
+    .validator(userIdSchema)
+    .handler(async ({ data }) => {
+        const db = await getDb();
+        const viewer = await getAuthUser();
+        if (!viewer) return { ok: false as const, error: 'Нужен вход' };
+
+        const user = await db.user.findUnique({
+            where: { id: data.userId },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                createdAt: true,
+                _count: { select: { movies: true, ratings: true, comments: true, friends: true } },
+            },
+        });
+        if (!user) return { ok: false as const, error: 'Пользователь не найден' };
+
+        const [ watchlistCount, watchedCount, friendship, movieIds ] = await Promise.all([
+            db.watchEntry.count({ where: { userId: user.id, status: 'WATCHLIST' } }),
+            db.watchEntry.count({ where: { userId: user.id, status: 'WATCHED' } }),
+            viewer.id === user.id
+                ? Promise.resolve(null)
+                : db.userFriend.findUnique({
+                    where: { userId_friendId: { userId: viewer.id, friendId: user.id } },
+                    select: { id: true },
+                }),
+            db.movie.findMany({
+                where: { createdById: user.id },
+                orderBy: { createdAt: 'desc' },
+                select: { id: true },
+            }),
+        ]);
+        const cards = await toMovieCards(movieIds.map((movie) => movie.id));
+
+        return {
+            ok: true as const,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: resolveRole(user.email, user.role),
+                isBootstrapAdmin: BOOTSTRAP_ADMIN_EMAILS.includes(user.email.toLowerCase()),
+                createdAt: user.createdAt.toISOString(),
+                movieCount: user._count.movies,
+                ratingCount: user._count.ratings,
+                commentCount: user._count.comments,
+                watchlistCount,
+                watchedCount,
+                friendCount: user._count.friends,
+                isFriend: Boolean(friendship),
+                isSelf: viewer.id === user.id,
+                canManage: viewer.role === 'ADMIN',
+                movies: movieIds
+                    .map((movie) => cards.get(movie.id))
+                    .filter((movie): movie is MovieCardData => Boolean(movie)),
+            } satisfies DashboardProfileData,
+        };
     });
 
 export const getDashboardData = createServerFn({ method: 'GET' }).handler(async (): Promise<DashboardData | null> => {

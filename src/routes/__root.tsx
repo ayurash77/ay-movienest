@@ -36,7 +36,9 @@ function RootComponent() {
     const { pathname } = useLocation();
     const [ isMobileMenuOpen, setIsMobileMenuOpen ] = useState(false);
     const [ isThemeOpen, setIsThemeOpen ] = useState(false);
-    const headerTitle = pathname === '/dashboard' || pathname === '/dashboard/' ? 'Дашборд' : null;
+    const headerTitle = pathname === '/dashboard' || pathname === '/dashboard/'
+        ? 'Дашборд'
+        : /^\/dashboard\/[^/]+$/.test(pathname) ? 'Профиль пользователя' : null;
 
     useEffect(() => {
         applyTheme(getStoredTheme(user?.id ?? null));
