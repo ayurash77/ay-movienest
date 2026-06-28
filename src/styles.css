@@ -89,7 +89,7 @@
     --destructive: oklch(0.63 0.22 5);
     --destructive-foreground: oklch(0.18 0.03 350);
     --border: oklch(0.3 0.022 275 / 0.6);
-    --input: oklch(0.25 0.018 275 / 0.8);
+    --input: oklch(0.27 0.018 275);
     --ring: oklch(0.7 0.5 255);
     --radius: 0.5rem;
 }
@@ -97,7 +97,7 @@
 :root {
     --surface: color-mix(in oklch, var(--background) 96%, black 4%);
     --popover-panel: color-mix(in oklch, var(--popover) 94%, white 6%);
-    --field: color-mix(in oklch, var(--input) 22%, transparent);
+    --field: color-mix(in oklch, var(--input) 94%, white 6%);
     --card: color-mix(in oklch, var(--background) 90%, var(--secondary) 30%);
     --chat-bubble: color-mix(in oklch, var(--card) 94%, white 6%);
     --card-active: color-mix(in oklch, var(--secondary) 70%, white 3%);
