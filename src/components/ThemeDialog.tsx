@@ -9,15 +9,10 @@ import { cn } from '@/lib/utils';
 type ThemeDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    userId?: string | null;
 };
 
 const themePreview: Record<AppTheme, { bg: string; fg: string; accent: string; note: string }> = {
-    'golden-show': {
-        bg: 'oklch(0.16 0.02 270)',
-        fg: 'oklch(0.95 0.01 270)',
-        accent: 'oklch(0.75 0.16 70)',
-        note: 'Текущая палитра MovieNest',
-    },
     catppuccin: {
         bg: '#1e1e2e',
         fg: '#cdd6f4',
@@ -29,12 +24,6 @@ const themePreview: Record<AppTheme, { bg: string; fg: string; accent: string; n
         fg: '#abb2bf',
         accent: '#61afef',
         note: 'One Dark Pro Night Flat',
-    },
-    dracula: {
-        bg: '#282a36',
-        fg: '#f8f8f2',
-        accent: '#bd93f9',
-        note: 'Официальная палитра Dracula',
     },
     ayu: {
         bg: '#10141c',
@@ -50,16 +39,16 @@ const themePreview: Record<AppTheme, { bg: string; fg: string; accent: string; n
     },
 };
 
-export function ThemeDialog({ open, onOpenChange }: ThemeDialogProps) {
-    const [ theme, setTheme ] = useState<AppTheme>(() => getStoredTheme());
+export function ThemeDialog({ open, onOpenChange, userId = null }: ThemeDialogProps) {
+    const [ theme, setTheme ] = useState<AppTheme>(() => getStoredTheme(userId));
 
     useEffect(() => {
-        if (open) setTheme(getStoredTheme());
-    }, [ open ]);
+        if (open) setTheme(getStoredTheme(userId));
+    }, [ open, userId ]);
 
     const selectTheme = (nextTheme: AppTheme) => {
         setTheme(nextTheme);
-        storeTheme(nextTheme);
+        storeTheme(nextTheme, userId);
         applyTheme(nextTheme);
         onOpenChange(false);
     };

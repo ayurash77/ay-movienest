@@ -9,6 +9,7 @@ import { ThemeDialog } from '@/components/ThemeDialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { getSessionUser } from '@/server/auth';
+import { applyTheme, getStoredTheme } from '@/lib/theme';
 
 export const Route = createRootRoute({
     head: () => ({
@@ -35,6 +36,11 @@ function RootComponent() {
     const { pathname } = useLocation();
     const [ isMobileMenuOpen, setIsMobileMenuOpen ] = useState(false);
     const [ isThemeOpen, setIsThemeOpen ] = useState(false);
+    const headerTitle = pathname === '/dashboard' || pathname === '/dashboard/' ? 'Дашборд' : null;
+
+    useEffect(() => {
+        applyTheme(getStoredTheme(user?.id ?? null));
+    }, [ user?.id ]);
 
     // Закрываем мобильное меню при переходе на другую страницу
     useEffect(() => {
@@ -67,7 +73,11 @@ function RootComponent() {
                     </Sheet>
                     <Link to="/" className="flex items-center gap-2 text-base font-bold tracking-tight">
                         <Film className="size-5 text-primary"/>
-                        Movie<span className="text-primary">Nest</span>
+                        {headerTitle ?? (
+                            <>
+                                Movie<span className="text-primary">Nest</span>
+                            </>
+                        )}
                     </Link>
                 </header>
 
@@ -78,7 +88,7 @@ function RootComponent() {
                     MovieNest — ваша библиотека фильмов
                 </footer>
             </div>
-            <ThemeDialog open={isThemeOpen} onOpenChange={setIsThemeOpen}/>
+            <ThemeDialog open={isThemeOpen} onOpenChange={setIsThemeOpen} userId={user?.id ?? null}/>
             <Toaster theme="dark" position="bottom-right"/>
         </div>
     );
@@ -90,10 +100,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <head>
                 <HeadContent/>
             </head>
-            <body className="scrollbar-thumb-primary scrollbar-track-background">
+            <body>
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: "try{const t=localStorage.getItem('movienest:theme');if(['golden-show','catppuccin','onedark','dracula','ayu','shotmate'].includes(t))document.documentElement.dataset.theme=t;}catch{}",
+                        __html: "try{const t=localStorage.getItem('movienest:theme');document.documentElement.dataset.theme=['ayu','catppuccin','onedark','shotmate'].includes(t)?t:'ayu';}catch{document.documentElement.dataset.theme='ayu'}",
                     }}
                 />
                 {children}

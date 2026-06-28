@@ -6,10 +6,20 @@ import { db } from '@/lib/db';
 const SESSION_COOKIE = 'movienest_session';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+export type UserRole = 'USER' | 'ADMIN';
+
+export const BOOTSTRAP_ADMIN_EMAILS = [ 'ayurash@me.com' ];
+
+export function resolveRole(email: string, storedRole: string | null | undefined): UserRole {
+    if (BOOTSTRAP_ADMIN_EMAILS.includes(email.toLowerCase())) return 'ADMIN';
+    return storedRole === 'ADMIN' ? 'ADMIN' : 'USER';
+}
+
 export type SessionUser = {
     id: string;
     email: string;
     name: string;
+    role: UserRole;
 };
 
 export async function createSession(userId: string) {
@@ -54,5 +64,6 @@ export async function getAuthUser(): Promise<SessionUser | null> {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
+        role: resolveRole(session.user.email, session.user.role),
     };
 }

@@ -80,6 +80,7 @@ const MOVIES = [
 
 const USERS = [
     { email: 'demo@movienest.dev', name: 'Демо' },
+    { email: 'ayurash@me.com', name: 'Ayurash', role: 'ADMIN' },
     { email: 'anna@movienest.dev', name: 'Анна' },
     { email: 'boris@movienest.dev', name: 'Борис' },
     { email: 'vera@movienest.dev', name: 'Вера' },
@@ -105,6 +106,7 @@ function mulberry32(seed: number) {
 async function main() {
     console.log('Seeding MovieNest…');
 
+    await db.userFriend.deleteMany();
     await db.rating.deleteMany();
     await db.session.deleteMany();
     await db.movie.deleteMany();
@@ -113,7 +115,7 @@ async function main() {
     const passwordHash = hashPassword('demo123');
     const users = [];
     for (const u of USERS) {
-        users.push(await db.user.create({ data: { ...u, passwordHash } }));
+        users.push(await db.user.create({ data: { ...u, role: 'role' in u ? u.role : 'USER', passwordHash } }));
     }
 
     const rand = mulberry32(42);

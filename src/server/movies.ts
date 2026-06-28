@@ -29,7 +29,7 @@ export type MovieSortDir = (typeof movieSortDirOptions)[number];
 export const movieKindOptions = [ 'MOVIE', 'SERIES', 'CARTOON' ] as const;
 export type MovieKind = (typeof movieKindOptions)[number];
 
-async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> {
+export async function toMovieCards(ids: string[]): Promise<Map<string, MovieCardData>> {
     if (ids.length === 0) return new Map();
 
     const [ movies, aggregates, commentCounts ] = await Promise.all([
@@ -221,7 +221,7 @@ export const getMovie = createServerFn({ method: 'GET' })
             ratingCount: agg._count._all,
             myRating: myRating?.value ?? null,
             myWatchStatus: myWatch?.status ?? null,
-            canEdit: Boolean(user && movie.createdById === user.id),
+            canEdit: Boolean(user && (movie.createdById === user.id || user.role === 'ADMIN')),
         };
     });
 
@@ -320,7 +320,7 @@ export const updateMovie = createServerFn({ method: 'POST' })
         if (!movie) {
             return { ok: false as const, error: 'Фильм не найден' };
         }
-        if (movie.createdById !== user.id) {
+        if (movie.createdById !== user.id && user.role !== 'ADMIN') {
             return { ok: false as const, error: 'Редактировать может только добавивший фильм' };
         }
 

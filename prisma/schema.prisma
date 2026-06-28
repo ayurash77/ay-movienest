@@ -12,12 +12,15 @@ model User {
   email        String       @unique
   name         String
   passwordHash String
+  role         String       @default("USER")
   createdAt    DateTime     @default(now())
   sessions     Session[]
   ratings      Rating[]
   movies       Movie[]
   comments     Comment[]
   watchEntries WatchEntry[]
+  friends      UserFriend[] @relation("UserFriends")
+  friendOf     UserFriend[] @relation("FriendOf")
 }
 
 model Session {
@@ -28,6 +31,19 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model UserFriend {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  String
+  friend    User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+  @@index([userId, createdAt])
+  @@index([friendId])
 }
 
 model Movie {

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useRouter } from '@tanstack/react-route
 import {
     Bookmark,
     Check,
+    LayoutDashboard,
     Film,
     Home,
     LogOut,
@@ -100,6 +101,16 @@ export function Sidebar({ user, onOpenTheme }: { user: SessionUser | null; onOpe
                     <Home/>
                     Фильмотека
                 </Link>
+                {user ? (
+                    <Link
+                        to="/dashboard"
+                        className={navLinkClass}
+                        activeProps={{ className: cn(navLinkClass, navLinkActive) }}
+                    >
+                        <LayoutDashboard/>
+                        Дашборд
+                    </Link>
+                ) : null}
                 <Link
                     to="/movies"
                     search={{ kind: 'MOVIE' }}
