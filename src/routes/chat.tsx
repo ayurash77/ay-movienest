@@ -518,7 +518,7 @@ function ChatPage() {
                                         placeholder={editingMessage ? 'Редактировать сообщение' : 'Сообщение'}
                                         maxLength={2000}
                                         autoComplete="off"
-                                        className="h-10 rounded-full px-4 shadow-[0_10px_28px_rgb(0_0_0/0.22)] backdrop-blur-md"
+                                        className="h-10 rounded-full px-4 shadow-[0_10px_28px_rgb(0_0_0/0.22)] backdrop-blur-2xl"
                                     />
                                     <Button
                                         type="submit"
