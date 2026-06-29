@@ -84,7 +84,7 @@ function RootLayout() {
     );
 
     return (
-        <div className="flex min-h-svh bg-background">
+        <div className={cn('flex bg-background', isChatRoute ? 'h-svh overflow-hidden' : 'min-h-svh')}>
             <aside className="sticky top-0 hidden h-svh w-60 shrink-0 border-r border-border bg-background shadow-[10px_0_30px_rgb(0_0_0/0.18)] md:block">
                 <Sidebar
                     user={user}
@@ -93,10 +93,10 @@ function RootLayout() {
                 />
             </aside>
 
-            <div className="flex min-w-0 flex-1 flex-col bg-surface">
+            <div className={cn('flex min-w-0 flex-1 flex-col bg-surface', isChatRoute && 'h-svh min-h-0 overflow-hidden')}>
                 <header
                     className={cn(
-                        'sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md',
+                        'sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border px-3 shadow-[0_12px_30px_rgb(0_0_0/0.24)] backdrop-blur-md',
                         isChatRoute ? 'bg-background/75' : 'bg-background/90',
                     )}
                 >

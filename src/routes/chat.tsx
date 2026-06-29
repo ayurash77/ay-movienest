@@ -399,7 +399,7 @@ function ChatPage() {
         <div className="flex h-full min-h-0 w-full flex-1 flex-col">
             <PageTitle title={title} mobileBackTo={activeThread ? '/chat' : undefined}/>
 
-            <div className="grid min-h-0 flex-1 gap-4 md:grid-cols-[18rem_minmax(0,1fr)]">
+            <div className="grid h-full min-h-0 flex-1 gap-4 overflow-hidden md:grid-cols-[18rem_minmax(0,1fr)]">
                 <aside className={cn('min-h-0 overflow-y-auto pr-1', activeThread && 'hidden md:block')}>
                     <div className="mb-2 px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Диалоги
@@ -421,7 +421,7 @@ function ChatPage() {
                     )}
                 </aside>
 
-                <section className={cn('relative min-h-0 overflow-hidden flex-col', activeThread ? 'flex' : 'hidden md:flex')}>
+                <section className={cn('relative h-full min-h-0 overflow-hidden flex-col', activeThread ? 'flex' : 'hidden md:flex')}>
                     {activeThread ? (
                         <>
                             <div className="hidden items-center gap-3 border-b border-border/70 bg-background/75 px-1 pb-3 backdrop-blur-md md:flex">
